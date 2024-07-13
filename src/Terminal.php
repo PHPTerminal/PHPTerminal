@@ -46,7 +46,7 @@ class Terminal extends Base
         try {
             $this->getAllCommands();
         } catch (\throwable | UnableToListContents $e) {
-            var_dump($e);
+            // var_dump($e);
             \cli\line("%W%1Error Loading commands, contact Developer!\n\n");
 
             exit(1);
@@ -323,34 +323,36 @@ class Terminal extends Base
 
         foreach ($this->config['modules'] as $module) {
             if ($module['name'] === 'base') {
-                $commandsArr =
+                $baseModulesFiles =
                     $this->localContent->listContents('src/BaseModules/', true)
                     ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
                     ->map(fn (StorageAttributes $attributes) => $attributes->path())
                     ->toArray();
 
-                if (count($commandsArr) > 0) {
-                    foreach ($commandsArr as $key => $command) {
-                        $command = str_replace('src/', '', $command);
-                        $command = ucfirst($command);
-                        $command = str_replace('/', '\\', $command);
-                        $command = str_replace('.php', '', $command);
-                        $command = '\\PHPTerminal\\' . $command;
+                if (count($baseModulesFiles) > 0) {
+                    foreach ($baseModulesFiles as $module) {
+                        $moduleNamespace = $this->extractNamespace(base_path($module));
+                        $module = str_replace('.php', '', $module);
+                        $module = explode('/', $module);
+                        $moduleNamespace = '\\' . $moduleNamespace . '\\' . $module[array_key_last($module)];
 
                         try {
-                            $command = new $command();
+                            $module = new $moduleNamespace();
 
-                            if (method_exists($command, 'getCommands')) {
-                                $commandReflection = new ReflectionClass($command);
+                            $moduleReflection = new ReflectionClass($module);
+                            $moduleInterfaces = $moduleReflection->getInterfaceNames();
 
-                                $className = $commandReflection->getName();
+                            if ($moduleInterfaces && count($moduleInterfaces) > 0) {
+                                if (!in_array('PHPTerminal\ModulesInterface', $moduleInterfaces)) {
+                                    continue;
+                                } else {
+                                    $moduleKey = str_replace('\\', '', $moduleNamespace);
 
-                                $commandKey = str_replace('\\', '', $className);
+                                    $this->modules[$moduleKey] = $module->getCommands();
 
-                                $this->commands[$commandKey] = $command->getCommands();
-
-                                foreach ($this->commands[$commandKey] as &$commandArr) {
-                                    $commandArr['class'] = $className;
+                                    foreach ($this->modules[$moduleKey] as &$moduleArr) {
+                                        $moduleArr['class'] = $moduleNamespace;
+                                    }
                                 }
                             }
                         } catch (\throwable $e) {
@@ -362,28 +364,30 @@ class Terminal extends Base
 
             if ($this->module === 'base') {
                 break;
-            } else if (isset($this->config['modules'][$this->module])) {
+            }
+
+            if (isset($this->config['modules'][$this->module])) {
                 //Read module files
             }
         }
 
-        foreach ($this->commands as $commandClass => $commandsArr) {
-            foreach ($commandsArr as $command) {
-                if (!isset($this->autoCompleteList[$command['availableAt']])) {
-                    $this->autoCompleteList[$command['availableAt']] = [];
+        foreach ($this->modules as $moduleClass => $modulesArr) {
+            foreach ($modulesArr as $module) {
+                if (!isset($this->autoCompleteList[$module['availableAt']])) {
+                    $this->autoCompleteList[$module['availableAt']] = [];
                 }
-                array_push($this->autoCompleteList[$command['availableAt']], $command['command']);
+                array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
 
-                if (!isset($this->helpList[$command['availableAt']])) {
-                    $this->helpList[$command['availableAt']] = [];
+                if (!isset($this->helpList[$module['availableAt']])) {
+                    $this->helpList[$module['availableAt']] = [];
                 }
 
-                array_push($this->helpList[$command['availableAt']], [$command['command'], $command['description']]);
+                array_push($this->helpList[$module['availableAt']], [$module['command'], $module['description']]);
 
-                if (!isset($this->execCommandsList[$command['availableAt']])) {
-                    $this->execCommandsList[$command['availableAt']] = [];
+                if (!isset($this->execCommandsList[$module['availableAt']])) {
+                    $this->execCommandsList[$module['availableAt']] = [];
                 }
-                array_push($this->execCommandsList[$command['availableAt']], $command);
+                array_push($this->execCommandsList[$module['availableAt']], $module);
             }
         }
     }
@@ -397,5 +401,28 @@ class Terminal extends Base
         }
 
         return true;
+    }
+
+    protected function extractNamespace($file)
+    {
+        $ns = NULL;
+
+        $handle = fopen($file, "r");
+
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (strpos($line, 'namespace') === 0) {
+                    $parts = explode(' ', $line);
+
+                    $ns = rtrim(trim($parts[1]), ';');
+
+                    break;
+                }
+            }
+
+            fclose($handle);
+        }
+
+        return $ns;
     }
 }
