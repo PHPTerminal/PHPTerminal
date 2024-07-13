@@ -1,0 +1,20 @@
+#!/usr/bin/env php
+<?php
+
+use PHPTerminal\Terminal;
+
+include $_composer_autoload_path ?? __DIR__ . '/../vendor/autoload.php';
+
+try {
+    if (PHP_SAPI === 'cli') {
+        $dataPath = $_composer_bin_dir ? $_composer_bin_dir . '/../../terminaldata/' : null;
+
+        (new Terminal($dataPath))->run();
+    } else {
+        echo "This is a CLI tool. From CLI, type ./phpterminal to access the terminal.";
+
+        exit;
+    }
+} catch (\throwable $e) {
+    echo $e->getMessage() . PHP_EOL;
+}

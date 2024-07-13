@@ -1,0 +1,1 @@
+{"_id":1,"hostname":"guru","banner":"Welcome to PHP Terminal!\\n\\n\"Type help or ? (question mark) for help at any time\\n\\nEnter command and ? (question mark) for specific command help\/options\\n","modules":{"base":{"name":"base","description":"Base Module","type":"location","location":"src\/BaseCommands\/"}},"updatedAt":1720879913}
