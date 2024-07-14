@@ -31,6 +31,20 @@ class Disable extends Modules
     public function run($args = [], $initial = true)
     {
         if (!isset($this->terminal->config['plugins']['auth'])) {
+            $this->setEnableMode();
+
+            return true;
+        }
+
+        if (isset($this->terminal->config['plugins']['auth']['class']) &&
+            !class_exists($this->terminal->config['plugins']['auth']['class'])
+        ) {
+            unset($this->terminal->config['plugins']['auth']);
+
+            $this->terminal->updateConfig($this->terminal->config);
+
+            $this->setEnableMode();
+
             return true;
         }
 
@@ -119,12 +133,7 @@ class Disable extends Modules
             $account = $this->auth->attempt($this->username, $this->password);
 
             if ($account) {
-                $this->terminal->setWhereAt('enable');
-                $this->terminal->setPrompt('# ');
-                $this->terminal->setAccount($account);
-                $this->terminal->setLoginAt(time());
-
-                readline_read_history(base_path('var/terminal/history/' . $this->terminal->getAccount()['id']));
+                $this->setEnableMode($account);
 
                 $this->terminal->addResponse(
                     'Authenticated! Welcome ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['profile']['email'] . '...'
@@ -139,6 +148,18 @@ class Disable extends Modules
         $this->terminal->addResponse('Login Incorrect! Try again...', 1);
 
         return false;
+    }
+
+    protected function setEnableMode($account = null)
+    {
+        $this->terminal->setWhereAt('enable');
+        $this->terminal->setPrompt('# ');
+        if ($account) {
+            $this->terminal->setAccount($account);
+            $this->terminal->setLoginAt(time());
+
+            readline_read_history(base_path('var/terminal/history/' . $this->terminal->getAccount()['id']));
+        }
     }
 
     public function getCommands() : array

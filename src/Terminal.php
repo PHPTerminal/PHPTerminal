@@ -82,11 +82,7 @@ class Terminal extends Base
 
         while (true) {
             if ($command === 'quit') {
-                \cli\line('');
-                \cli\line('Bye!');
-                \cli\line('');
-
-                exit;
+                break;
             } else if ($command === 'exit') {
                 if ($this->whereAt === 'disable') {
                     break;
@@ -106,24 +102,29 @@ class Terminal extends Base
                 }
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
                 $this->showHelp();
-            } else if (checkCtype($command)) {
+            } else if (checkCtype($command, 'alnum', ['/',' ','-'])) {
                 if (!$this->searchCommand(trim(strtolower($command)))) {
                     echo "Command " . trim($command) . " not found!\n";
                 } else {
                     readline_add_history($command);
                 }
-            } else if ($command !== '') {
+            } else if ($command && $command !== '') {
                 echo "Command " . trim($command) . " not found!\n";
             }
 
             $this->run();
         }
 
+        $this->quit();
+    }
+
+    protected function quit()
+    {
         \cli\line('');
         \cli\line('Bye!');
         \cli\line('');
 
-        exit;
+        exit(0);
     }
 
     protected function showHelp()
