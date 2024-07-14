@@ -114,28 +114,20 @@ class Disable extends Modules
     protected function performLogin()
     {
         try {
-            $this->auth = (new $this->terminal->config['plugins']['auth']['class']())->init();
-            var_dump($this->auth);die();
-            $login = $this->auth->attempt($this->username, $this->password);
+            $this->auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
 
-            if ($login) {//Change this to authentication
+            $account = $this->auth->attempt($this->username, $this->password);
+
+            if ($account) {
                 $this->terminal->setWhereAt('enable');
                 $this->terminal->setPrompt('# ');
-                $this->terminal->setAccount(
-                    [
-                        'id' => 1,
-                        'profile' => [
-                            'full_name' => 'System Administrator'
-                        ],
-                        'email' => 'email@oyeaussie.com'
-                    ]
-                );
+                $this->terminal->setAccount($account);
                 $this->terminal->setLoginAt(time());
 
                 readline_read_history(base_path('var/terminal/history/' . $this->terminal->getAccount()['id']));
 
                 $this->terminal->addResponse(
-                    'Authenticated! Welcome ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['email'] . '...'
+                    'Authenticated! Welcome ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['profile']['email'] . '...'
                 );
 
                 return true;
