@@ -1,6 +1,6 @@
 {
     "name": "oyeaussie/phpterminal",
-    "description": "PHPTerminal is a CLI tool to make calls using predefined commands. It runs continuously giving the user a feeling of working on a Unix terminal.",
+    "description": "PHPTerminal is a CLI application to make calls using predefined commands. It runs continuously giving the user a feeling of working on a Unix terminal.",
     "keywords": [
         "php",
         "terminal"

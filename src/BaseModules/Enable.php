@@ -29,7 +29,9 @@ class Enable extends Modules
 
             readline_clear_history();
 
-            $this->terminal->addResponse('Cleared history for ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['email']);
+            $this->terminal->addResponse(
+                'Cleared history for ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['email']
+            );
 
             return true;
         }
@@ -43,25 +45,35 @@ class Enable extends Modules
         return true;
     }
 
-    public function show()
+    protected function showActiveModule()
     {
-        $command = explode(' ', $this->command);
-
-        if ($command[0] !== 'show') {
-            return false;
-        }
-
-
-        var_dump($command, $this->command);
+        $this->terminal->addResponse('', 0, ['Active Module' => $this->terminal->module]);
 
         return true;
     }
 
-    public function switch($args = [])
+    protected function showAvailableModules()
     {
-        var_dump($args);
-        $this->terminal->setWhereAt('config');
-        $this->terminal->setPrompt('(config)# ');
+        $this->terminal->addResponse(
+            '',
+            0,
+            ['Available Modules' => $this->terminal->config['modules']],
+            true,
+            true,
+            [
+                'name', 'description', 'location'
+            ],
+            [
+                20,75,75
+            ]
+        );
+
+        return true;
+    }
+
+    public function switchModule($module)
+    {
+        $this->terminal->module = $module;
 
         return true;
     }
@@ -84,21 +96,15 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "show module",
+                    "command"       => "show active module",
                     "description"   => "Show current running module.",
                     "function"      => "show"
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "show modules",
+                    "command"       => "show available modules",
                     "description"   => "Show all available modules.",
                     "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "switch module",
-                    "description"   => "Switch terminal module to read commands from different location.",
-                    "function"      => "switch"
                 ],
                 [
                     "availableAt"   => "enable",

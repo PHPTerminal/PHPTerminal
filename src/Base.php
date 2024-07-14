@@ -75,14 +75,15 @@ abstract class Base
                     '_id'           => 1,
                     'hostname'      => 'phpterminal',
                     'banner'        => 'Welcome to PHP Terminal!\n\n"Type help or ? (question mark) for help at any time\n\nEnter command and ? (question mark) for specific command help/options\n',
+                    'active_module' => 'base',
                     'modules'       => [
                         'base'      => [
                             'name'          => 'base',
                             'description'   => 'Base Module',
-                            'type'          => 'location',//location/package
                             'location'      => __DIR__ . '/BaseCommands/'
                         ]
-                    ]
+                    ],
+                    'plugins'       => []
                 ]
             );
         }
@@ -115,8 +116,16 @@ abstract class Base
         );
     }
 
-    public function addResponse($responseMessage, int $responseCode = 0, $responseData = null)
-    {
+    public function addResponse(
+        $responseMessage,
+        int $responseCode = 0,
+        $responseData = null,
+        $responseDataIsList = false,
+        $showAsTable = false,
+        $showColumns = [],
+        $columnsWidths = [],
+        $replaceColumnNames = []
+    ) {
         $this->commandsData->responseMessage = $responseMessage;
 
         $this->commandsData->responseCode = $responseCode;
@@ -126,6 +135,23 @@ abstract class Base
         } else {
             $this->commandsData->responseData = [];
         }
+
+        $this->commandsData->responseDataIsList = $responseDataIsList;
+
+        $this->commandsData->showAsTable = $showAsTable;
+
+        if ($showAsTable && (count($showColumns) === 0 || count($showColumns) >= 5)) {
+            throw new \Exception('Showing data as table needs showColumns array set and only 5 columns can be shown. Contact developer!');
+        }
+        if ($showAsTable && (count($columnsWidths) === 0 || count($columnsWidths) !== count($showColumns))) {
+            throw new \Exception('Showing data as table needs columnsWidths array set and they should match the number of columns being displayed. Contact developer!');
+        }
+
+        $this->commandsData->showColumns = $showColumns;
+
+        $this->commandsData->columnsWidths = $columnsWidths;
+
+        $this->commandsData->replaceColumnNames = $replaceColumnNames;
     }
 
     // protected function newProgress($processType = 'Downloading...')

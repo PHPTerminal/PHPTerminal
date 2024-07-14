@@ -115,3 +115,45 @@ if (!function_exists('checkCtype')) {
         return false;
     }
 }
+
+if (!function_exists('true_flatten')) {
+    function true_flatten(array $array, array $parents = [])
+    {
+        $return = [];
+        foreach ($array as $k => $value) {
+            $p = empty($parents) ? [$k] : [...$parents, $k];
+            if (is_array($value)) {
+                $return = [...$return, ...true_flatten($value, $p)];
+            } else {
+                $return[implode('_', $p)] = $value;
+            }
+        }
+
+        return $return;
+    }
+}
+
+if (!function_exists('extractLineFromFile')) {
+    function extractLineFromFile($file, $word)
+    {
+        $lineWithWord = NULL;
+
+        $handle = fopen($file, "r");
+
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (strpos($line, $word) === 0) {
+                    $parts = explode(' ', $line);
+
+                    $lineWithWord = rtrim(trim($parts[1]), ';');
+
+                    break;
+                }
+            }
+
+            fclose($handle);
+        }
+
+        return $lineWithWord;
+    }
+}

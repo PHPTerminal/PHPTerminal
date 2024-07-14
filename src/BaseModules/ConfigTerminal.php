@@ -25,28 +25,55 @@ class ConfigTerminal extends Modules
         //
     }
 
-    public function set()
+    protected function setHostname(array $args)
     {
-        $command = explode(' ', $this->command);
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide valid hostname', 1);
 
-        if ($command[0] !== 'set') {
             return false;
         }
 
-        if (method_exists($this, $method = "set" . ucfirst("{$command[1]}"))) {
-            return $this->{$method}($command[2] ?? null);
+        if (!checkCtype($args[0], 'alnum', [' '])) {
+            $this->terminal->addResponse('Please provide valid hostname. Hostname cannot have special characters', 1);
+
+            return false;
         }
 
-        var_dump($command, $this->command);
+        if (strlen($args[0]) > 20) {
+            $this->terminal->addResponse('Please provide valid hostname. Hostname cannot be greater than 20 characters', 1);
+
+            return false;
+        }
+
+        $this->terminal->updateConfig(['hostname' => $args[0]]);
+
+        $this->terminal->setHostname();
 
         return true;
     }
 
-    protected function setHostname($hostname)
+    public function switchModule()
     {
-        $this->terminal->updateConfig(['hostname' => $hostname]);
+        $commandArr = explode(' ', $this->command);
 
-        $this->terminal->setHostname();
+        if ($commandArr[0] !== 'switch' ||
+            count($commandArr) > 3
+        ) {
+            return false;
+        }
+
+        $module = strtolower($commandArr[array_key_last($commandArr)]);
+
+        if (isset($this->terminal->config['modules'][$module])) {
+            $this->terminal->updateConfig(['active_module' => $module]);
+            $this->terminal->setActiveModule($module);
+            $this->terminal->setHostname();
+            $this->terminal->getAllCommands();
+        } else {
+            $this->terminal->addResponse('Unknwon module: ' . $module . '. Run show available modules from enable mode to see all available modules', 1);
+
+            return false;
+        }
 
         return true;
     }
@@ -78,7 +105,13 @@ class ConfigTerminal extends Modules
                     "command"       => "quit",
                     "description"   => "Quit Terminal",
                     "function"      => ""
-                ]
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "switch module",
+                    "description"   => "switch module {module_name}. Switch terminal module.",
+                    "function"      => "switchModule"
+                ],
             ];
     }
 }

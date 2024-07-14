@@ -9,11 +9,15 @@ use ReflectionClass;
 
 class Terminal extends Base
 {
+    public $whereAt = 'disable';
+
+    public $execCommandsList = [];
+
+    public $module = 'base';
+
     protected $banner;
 
     protected $account = null;
-
-    protected $whereAt = 'disable';
 
     protected $hostname = 'PHPTerminal';
 
@@ -23,25 +27,23 @@ class Terminal extends Base
 
     protected $commands = [];
 
+    protected $modules = [];
+
     protected $autoCompleteList = [];
 
     protected $helpList = [];
-
-    protected $execCommandsList = [];
 
     protected $sessionTimeout = 3600;
 
     protected $loginAt;
 
-    protected $commandsDir = 'BaseModules/';
-
-    protected $module = 'base';
-
-    protected $moduleCommandsDir;
-
     public function __construct($dataPath = null)
     {
         parent::__construct(false, $dataPath);
+
+        $this->setActiveModule();
+        $this->setHostname();
+        $this->setBanner();
 
         try {
             $this->getAllCommands();
@@ -52,13 +54,7 @@ class Terminal extends Base
             exit(1);
         }
 
-        parent::__construct(false, $dataPath);
-
         system('clear');
-
-        $this->setDefaultMode();
-        $this->setHostname();
-        $this->setBanner();
 
         \cli\line($this->banner);
 
@@ -135,11 +131,16 @@ class Terminal extends Base
         if (isset($this->helpList[$this->whereAt]) &&
             count($this->helpList[$this->whereAt]) > 0
         ) {
-            $table = new \cli\Table();
-            $table->setHeaders(['Available Commands', 'Description']);
-            $table->setRows($this->helpList[$this->whereAt]);
-            $table->setRenderer(new \cli\table\Ascii([25, 100]));
-            $table->display();
+            \cli\line('');
+            foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
+                \cli\line("%y" . strtoupper($moduleName) . " COMMANDS%W");
+                $table = new \cli\Table();
+                $table->setHeaders(['Available Commands', 'Description']);
+                $table->setRows($moduleCommands);
+                $table->setRenderer(new \cli\table\Ascii([25, 100]));
+                $table->display();
+                \cli\line('');
+            }
         }
     }
 
@@ -150,7 +151,13 @@ class Terminal extends Base
         ) {
             foreach ($this->execCommandsList[$this->whereAt] as $commands) {
                 if (str_starts_with(strtolower($command), strtolower($commands['command']))) {
-                    return $this->execCommand($command, $commands);
+                    try {
+                        return $this->execCommand($command, $commands);
+                    } catch (\Exception $e) {
+                        \cli\line("%r" . $e->getMessage() . "%W");
+
+                        return true;
+                    }
                 }
             }
         }
@@ -182,17 +189,95 @@ class Terminal extends Base
             }
 
             \cli\line("");
-            \cli\line($color . $this->commandsData->responseMessage);
+            if ($this->commandsData->responseMessage && $this->commandsData->responseMessage !== '') {
+                \cli\line($color . $this->commandsData->responseMessage);
+            }
             \cli\out("%W");
+
             if ($this->commandsData->responseData && count($this->commandsData->responseData) > 0) {
-
-                $responseData = true_flatten($this->commandsData->responseData);
-
-                foreach ($responseData as $key => $value) {
-                    if ($value === null || $value === '') {
-                        $value = 'null';
+                if ($this->commandsData->responseDataIsList) {
+                    if ($this->commandsData->showAsTable) {
+                        $responseHeaders = [];
+                        $responseDataRows = [];
                     }
-                    \cli\line("%b$key : %W$value");
+
+                    \cli\line("%y" . strtoupper(array_key_first($this->commandsData->responseData)) . "%W");
+
+                    foreach ($this->commandsData->responseData as $responseKey => $responseValues) {
+                        $responseValues = array_values($responseValues);
+                        $responseData = true_flatten($responseValues);
+
+                        $initialKey = 0;
+
+                        foreach ($responseData as $key => $value) {
+                            if ($value === null || $value === '') {
+                                $value = 'null';
+                            }
+
+                            //true_flatten add the parent key to key as [parentKey_key], we remove that and use that to differentiate between different data.
+                            $key = explode('_', $key);
+
+                            if ($this->commandsData->showAsTable) {
+                                $rowKey = (int) $key[0];
+                            }
+
+                            if ((int) $key[0] !== $initialKey) {
+                                $initialKey = (int) $key[0];
+
+                                if (!$this->commandsData->showAsTable) {
+                                    \cli\line("");
+                                }
+                            }
+
+                            array_shift($key);
+                            $key = join('_', $key);
+
+                            if (count($this->commandsData->replaceColumnNames) > 0 &&
+                                isset($this->commandsData->replaceColumnNames[$key])
+                            ) {
+                                $key = $this->commandsData->replaceColumnNames[$key];
+                            }
+
+                            if ($this->commandsData->showAsTable) {
+                                if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
+                                    array_push($responseHeaders, $key);
+                                }
+
+                                if (in_array($key, $this->commandsData->showColumns)) {
+                                    if (!isset($responseDataRows[$rowKey])) {
+                                        $responseDataRows[$rowKey] = [];
+                                    }
+                                    array_push($responseDataRows[$rowKey], $value);
+                                }
+                            } else {
+                                \cli\line("%b$key : %W$value");
+                            }
+                        }
+                    }
+
+                    if ($this->commandsData->showAsTable) {//Draw Table here
+                        $table = new \cli\Table();
+                        $table->setHeaders($responseHeaders);
+                        $table->setRows($responseDataRows);
+                        $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
+                        $table->display();
+                    }
+                } else {
+                    $responseData = true_flatten($this->commandsData->responseData);
+
+                    foreach ($responseData as $key => $value) {
+                        if ($value === null || $value === '') {
+                            $value = 'null';
+                        }
+
+                        if (count($this->commandsData->replaceColumnNames) > 0 &&
+                            isset($this->commandsData->replaceColumnNames[$key])
+                        ) {
+                            $key = $this->commandsData->replaceColumnNames[$key];
+                        }
+
+                        \cli\line("%b$key : %W$value");
+                    }
                 }
             }
             \cli\line("");
@@ -232,14 +317,10 @@ class Terminal extends Base
         return $this->module;
     }
 
-    public function setDefaultMode()
+    public function setActiveModule()
     {
-        if (isset($this->config['default_module'])) {
-            $this->module = strtolower($this->config['default_module']);
-
-            if (isset($this->config['modules'][$this->module]['commandsDir'])) {
-                $this->moduleCommandsDir = $this->config['modules'][$this->module]['commandsDir'];
-            }
+        if (isset($this->config['active_module'])) {
+            $this->module = strtolower($this->config['active_module']);
         }
     }
 
@@ -255,9 +336,11 @@ class Terminal extends Base
                 $this->config['modules'][$this->module]['banner'] = str_replace('\\\\', '\\', $this->config['modules'][$this->module]['banner']);
 
                 $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%W";
+            } else {
+                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%W";
             }
         } else {
-            $this->banner = "%B" . $this->config['banner'] . "%W";
+            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%W";
         }
     }
 
@@ -311,7 +394,7 @@ class Terminal extends Base
         return $this->account;
     }
 
-    protected function getAllCommands()
+    public function getAllCommands()
     {
         if (!isset($this->config['modules']) ||
             (isset($this->config['modules']) && count($this->config['modules']) === 0)
@@ -320,10 +403,17 @@ class Terminal extends Base
         }
 
         $this->commands = [];
+        $this->modules = [];
 
         foreach ($this->config['modules'] as $module) {
             if ($module['name'] === 'base') {
                 $module['location'] = base_path('src/BaseModules/');
+            }
+
+            if ($module['name'] !== 'base' &&
+                strtolower($this->module) !== strtolower($module['name'])
+            ) {
+                continue;
             }
 
             $this->setLocalContent(false, $module['location']);
@@ -336,14 +426,16 @@ class Terminal extends Base
 
             if (count($modulesFiles) > 0) {
                 foreach ($modulesFiles as $moduleFile) {
-                    $moduleFileNamespace = $this->extractNamespace($module['location'] . $moduleFile);
+                    $moduleFileNamespace = extractLineFromFile($module['location'] . $moduleFile, 'namespace');
                     $moduleFilePath = $moduleFile;
                     $moduleFile = str_replace('.php', '', $moduleFile);
                     $moduleFile = explode('/', $moduleFile);
                     $moduleFileNamespace = '\\' . $moduleFileNamespace . '\\' . $moduleFile[array_key_last($moduleFile)];
 
                     try {
-                        include $module['location'] . $moduleFilePath;
+                        if (!class_exists($moduleFileNamespace)) {
+                            include $module['location'] . $moduleFilePath;
+                        }
 
                         $moduleInit = new $moduleFileNamespace();
 
@@ -360,6 +452,7 @@ class Terminal extends Base
 
                                 foreach ($this->modules[$moduleKey] as &$moduleArr) {
                                     $moduleArr['class'] = $moduleFileNamespace;
+                                    $moduleArr['module_name'] = $module['name'];
                                 }
                             }
                         }
@@ -370,13 +463,8 @@ class Terminal extends Base
             }
         }
 
-        // if ($this->module === 'base') {
-        //     break;
-        // }
-
-        // if (isset($this->config['modules'][$this->module])) {
-            //Read module files
-        // }
+        $this->autoCompleteList = [];
+        $this->helpList = [];
 
         foreach ($this->modules as $moduleClass => $modulesArr) {
             foreach ($modulesArr as $module) {
@@ -385,11 +473,11 @@ class Terminal extends Base
                 }
                 array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
 
-                if (!isset($this->helpList[$module['availableAt']])) {
-                    $this->helpList[$module['availableAt']] = [];
+                if (!isset($this->helpList[$module['availableAt']][$module['module_name']])) {
+                    $this->helpList[$module['availableAt']][$module['module_name']] = [];
                 }
 
-                array_push($this->helpList[$module['availableAt']], [$module['command'], $module['description']]);
+                array_push($this->helpList[$module['availableAt']][$module['module_name']], [$module['command'], $module['description']]);
 
                 if (!isset($this->execCommandsList[$module['availableAt']])) {
                     $this->execCommandsList[$module['availableAt']] = [];
@@ -410,28 +498,5 @@ class Terminal extends Base
         }
 
         return true;
-    }
-
-    protected function extractNamespace($file)
-    {
-        $ns = NULL;
-
-        $handle = fopen($file, "r");
-
-        if ($handle) {
-            while (($line = fgets($handle)) !== false) {
-                if (strpos($line, 'namespace') === 0) {
-                    $parts = explode(' ', $line);
-
-                    $ns = rtrim(trim($parts[1]), ';');
-
-                    break;
-                }
-            }
-
-            fclose($handle);
-        }
-
-        return $ns;
     }
 }
