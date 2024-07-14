@@ -11,7 +11,7 @@ class Enable extends Modules
 
     protected $command;
 
-    public function init(Terminal $terminal = null, $command)
+    public function init(Terminal $terminal = null, $command) : object
     {
         $this->terminal = $terminal;
 

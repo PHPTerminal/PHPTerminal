@@ -7,7 +7,7 @@ use PHPTerminal\Terminal;
 
 class Modules implements ModulesInterface
 {
-    public function init(Terminal $termina, $command)
+    public function init(Terminal $terminal, $command) : object
     {
         //
     }

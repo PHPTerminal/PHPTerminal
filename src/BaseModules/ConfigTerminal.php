@@ -11,7 +11,7 @@ class ConfigTerminal extends Modules
 
     protected $command;
 
-    public function init(Terminal $terminal, $command)
+    public function init(Terminal $terminal, $command) : object
     {
         $this->terminal = $terminal;
 

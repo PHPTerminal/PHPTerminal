@@ -46,7 +46,7 @@ class Terminal extends Base
         try {
             $this->getAllCommands();
         } catch (\throwable | UnableToListContents $e) {
-            // var_dump($e);
+            var_dump($e);
             \cli\line("%W%1Error Loading commands, contact Developer!\n\n");
 
             exit(1);
@@ -323,53 +323,60 @@ class Terminal extends Base
 
         foreach ($this->config['modules'] as $module) {
             if ($module['name'] === 'base') {
-                $baseModulesFiles =
-                    $this->localContent->listContents('src/BaseModules/', true)
-                    ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
-                    ->map(fn (StorageAttributes $attributes) => $attributes->path())
-                    ->toArray();
+                $module['location'] = base_path('src/BaseModules/');
+            }
 
-                if (count($baseModulesFiles) > 0) {
-                    foreach ($baseModulesFiles as $module) {
-                        $moduleNamespace = $this->extractNamespace(base_path($module));
-                        $module = str_replace('.php', '', $module);
-                        $module = explode('/', $module);
-                        $moduleNamespace = '\\' . $moduleNamespace . '\\' . $module[array_key_last($module)];
+            $this->setLocalContent(false, $module['location']);
 
-                        try {
-                            $module = new $moduleNamespace();
+            $modulesFiles =
+                $this->localContent->listContents('.', true)
+                ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
+                ->map(fn (StorageAttributes $attributes) => $attributes->path())
+                ->toArray();
 
-                            $moduleReflection = new ReflectionClass($module);
-                            $moduleInterfaces = $moduleReflection->getInterfaceNames();
+            if (count($modulesFiles) > 0) {
+                foreach ($modulesFiles as $moduleFile) {
+                    $moduleFileNamespace = $this->extractNamespace($module['location'] . $moduleFile);
+                    $moduleFilePath = $moduleFile;
+                    $moduleFile = str_replace('.php', '', $moduleFile);
+                    $moduleFile = explode('/', $moduleFile);
+                    $moduleFileNamespace = '\\' . $moduleFileNamespace . '\\' . $moduleFile[array_key_last($moduleFile)];
 
-                            if ($moduleInterfaces && count($moduleInterfaces) > 0) {
-                                if (!in_array('PHPTerminal\ModulesInterface', $moduleInterfaces)) {
-                                    continue;
-                                } else {
-                                    $moduleKey = str_replace('\\', '', $moduleNamespace);
+                    try {
+                        include $module['location'] . $moduleFilePath;
 
-                                    $this->modules[$moduleKey] = $module->getCommands();
+                        $moduleInit = new $moduleFileNamespace();
 
-                                    foreach ($this->modules[$moduleKey] as &$moduleArr) {
-                                        $moduleArr['class'] = $moduleNamespace;
-                                    }
+                        $moduleReflection = new ReflectionClass($moduleInit);
+                        $moduleInterfaces = $moduleReflection->getInterfaceNames();
+
+                        if ($moduleInterfaces && count($moduleInterfaces) > 0) {
+                            if (!in_array('PHPTerminal\ModulesInterface', $moduleInterfaces)) {
+                                continue;
+                            } else {
+                                $moduleKey = str_replace('\\', '', $moduleFileNamespace);
+
+                                $this->modules[$moduleKey] = $moduleInit->getCommands();
+
+                                foreach ($this->modules[$moduleKey] as &$moduleArr) {
+                                    $moduleArr['class'] = $moduleFileNamespace;
                                 }
                             }
-                        } catch (\throwable $e) {
-                            throw $e;
                         }
+                    } catch (\throwable $e) {
+                        throw $e;
                     }
                 }
             }
-
-            if ($this->module === 'base') {
-                break;
-            }
-
-            if (isset($this->config['modules'][$this->module])) {
-                //Read module files
-            }
         }
+
+        // if ($this->module === 'base') {
+        //     break;
+        // }
+
+        // if (isset($this->config['modules'][$this->module])) {
+            //Read module files
+        // }
 
         foreach ($this->modules as $moduleClass => $modulesArr) {
             foreach ($modulesArr as $module) {
@@ -390,6 +397,8 @@ class Terminal extends Base
                 array_push($this->execCommandsList[$module['availableAt']], $module);
             }
         }
+
+        $this->setLocalContent();
     }
 
     protected function checkHistoryPath()
