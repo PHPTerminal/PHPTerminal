@@ -78,9 +78,31 @@ class ConfigTerminal extends Modules
         return true;
     }
 
+    public function passwd()
+    {
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        $account = $auth->getAccount($this->terminal->getAccount()['id']);
+
+        if ($account) {
+            if ($auth->changePassword($account)) {
+                $this->terminal->addResponse('Password updated. Please login again with new password.');
+                $this->terminal->setWhereAt('disable');
+                $this->terminal->setPrompt('> ');
+                $this->terminal->setAccount(null);
+
+                return true;
+            }
+        }
+
+        $this->terminal->addResponse('Could not update password. Contact developer!', 1);
+
+        return false;
+    }
+
     public function getCommands(): array
     {
-        return
+        $commands =
             [
                 [
                     "availableAt"   => "config",
@@ -113,5 +135,20 @@ class ConfigTerminal extends Modules
                     "function"      => "switchModule"
                 ],
             ];
+
+        if (isset($this->terminal->config['plugins']['auth']['settings']['canReset']) &&
+            $this->terminal->config['plugins']['auth']['settings']['canReset'] === true
+        ) {
+            array_push($commands,
+                [
+                    "availableAt"   => "config",
+                    "command"       => "passwd",
+                    "description"   => "Set new password for current logged in user.",
+                    "function"      => "passwd"
+                ]
+            );
+        }
+
+        return $commands;
     }
 }

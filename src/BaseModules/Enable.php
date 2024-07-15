@@ -45,6 +45,17 @@ class Enable extends Modules
         return true;
     }
 
+    protected function showRun()
+    {
+        $runningConfiguration = $this->terminal->config;
+
+        unset($runningConfiguration['_id']);
+
+        $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
+
+        return true;
+    }
+
     protected function showActiveModule()
     {
         $this->terminal->addResponse('', 0, ['Active Module' => $this->terminal->module]);
@@ -167,9 +178,100 @@ class Enable extends Modules
                         }
                     }
 
+                    try {
+                        $this->terminal->config['plugins'][$pluginType]['settings'] =
+                            (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
+                    } catch (\throwable $e) {
+                        $this->terminal->config['plugins'][$pluginType]['settings'] = [];
+                    }
+
                     $this->terminal->updateConfig($this->terminal->config);
+
+                    if (strtolower($pluginType) === 'auth') {
+                        $this->terminal->setWhereAt('disable');
+                        $this->terminal->setPrompt('> ');
+                    }
                 }
             }
+        }
+
+        return true;
+    }
+
+    protected function composerUpgradePlugin($args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide plugin name to remove', 1);
+
+            return false;
+        }
+
+        \cli\line("");
+        \cli\line("%bUpgrading...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('upgrade -n ' . $args[0])) {
+            $this->readComposerInstallFile();
+
+            //Extract Plugin Type
+            $pluginType = explode('-', $args[0]);
+
+            $pluginType = $pluginType[array_key_last($pluginType)];
+
+            if ($this->runComposerCommand('show -i -f json')) {
+                $allPackages = file_get_contents(base_path('composer.install'));
+
+                $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
+
+                $allPackages = @json_decode($allPackages, true);
+
+                if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                    foreach ($allPackages['installed'] as $key => $package) {
+                        if ($package['name'] === $args[0]) {
+                            $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            try {
+                $this->terminal->config['plugins'][$pluginType]['settings'] =
+                    (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
+            } catch (\throwable $e) {
+                $this->terminal->config['plugins'][$pluginType]['settings'] = [];
+            }
+
+            $this->terminal->updateConfig($this->terminal->config);
+        }
+
+        return true;
+    }
+
+    protected function composerRemovePlugin($args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide plugin name to remove', 1);
+
+            return false;
+        }
+
+        \cli\line("");
+        \cli\line("%bRemoving...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('remove -n ' . $args[0])) {
+            $this->readComposerInstallFile();
+
+            foreach ($this->terminal->config['plugins'] as $pluginType => $plugin) {
+                if ($plugin['name'] === $args[0]) {
+                    unset($this->terminal->config['plugins'][$pluginType]);
+
+                    break;
+                }
+            }
+
+            $this->terminal->updateConfig($this->terminal->config);
         }
 
         return true;
@@ -247,6 +349,12 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
+                    "command"       => "show run",
+                    "description"   => "Show running configuration.",
+                    "function"      => "show"
+                ],
+                [
+                    "availableAt"   => "enable",
                     "command"       => "show active module",
                     "description"   => "Show current running module.",
                     "function"      => "show"
@@ -273,6 +381,24 @@ class Enable extends Modules
                     "availableAt"   => "enable",
                     "command"       => "composer install plugin",
                     "description"   => "composer install plugin {plugin_name}. To install plugin directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer upgrade plugin",
+                    "description"   => "composer upgrade plugin {plugin_name}. To upgrade plugin directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer remove plugin",
+                    "description"   => "composer remove plugin {plugin_name}. To remove plugin directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer resync",
+                    "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
                     "function"      => "composer"
                 ],
                 [

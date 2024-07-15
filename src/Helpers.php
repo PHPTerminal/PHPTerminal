@@ -125,7 +125,7 @@ if (!function_exists('true_flatten')) {
             if (is_array($value)) {
                 $return = [...$return, ...true_flatten($value, $p)];
             } else {
-                $return[implode('_', $p)] = $value;
+                $return[implode(' > ', $p)] = $value;
             }
         }
 

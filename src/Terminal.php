@@ -134,7 +134,7 @@ class Terminal extends Base
         ) {
             \cli\line('');
             foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
-                \cli\line("%y" . strtoupper($moduleName) . " COMMANDS%W");
+                \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%W");
                 $table = new \cli\Table();
                 $table->setHeaders(['Available Commands', 'Description']);
                 $table->setRows($moduleCommands);
@@ -216,7 +216,7 @@ class Terminal extends Base
                             }
 
                             //true_flatten add the parent key to key as [parentKey_key], we remove that and use that to differentiate between different data.
-                            $key = explode('_', $key);
+                            $key = explode(' > ', $key);
 
                             if ($this->commandsData->showAsTable) {
                                 $rowKey = (int) $key[0];
@@ -438,7 +438,7 @@ class Terminal extends Base
                             include $module['location'] . $moduleFilePath;
                         }
 
-                        $moduleInit = new $moduleFileNamespace();
+                        $moduleInit = (new $moduleFileNamespace())->init($this, null);
 
                         $moduleReflection = new ReflectionClass($moduleInit);
                         $moduleInterfaces = $moduleReflection->getInterfaceNames();

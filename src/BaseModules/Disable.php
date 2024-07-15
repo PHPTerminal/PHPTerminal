@@ -9,6 +9,8 @@ class Disable extends Modules
 {
     protected $terminal;
 
+    protected $auth;
+
     protected $command;
 
     protected $username;
