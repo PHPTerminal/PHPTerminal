@@ -46,6 +46,6 @@
     "bin": [
         "src/bin/phpterminal"
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "license": "MIT"
 }
