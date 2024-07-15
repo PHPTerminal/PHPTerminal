@@ -179,6 +179,9 @@ class Enable extends Modules
                     }
 
                     try {
+                        include
+                            $pluginInfomation['path'] . '/' . $pluginInfomation['autoload']['psr-4'][array_keys($pluginInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
+
                         $this->terminal->config['plugins'][$pluginType]['settings'] =
                             (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
                     } catch (\throwable $e) {
