@@ -280,6 +280,241 @@ class Enable extends Modules
         return true;
     }
 
+    protected function composerSearchModules()
+    {
+        \cli\line("");
+        \cli\line("%bSearching...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('search -N phpterminal-modules')) {
+            $this->readComposerInstallFile();
+        }
+
+        return true;
+    }
+
+    protected function composerInstallModule($args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide module name to install', 1);
+
+            return false;
+        }
+
+        \cli\line("");
+        \cli\line("%bInstalling...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('require -n ' . $args[0])) {
+            $this->readComposerInstallFile();
+
+            if ($this->runComposerCommand('show -f json ' . $args[0])) {
+                $pluginInfomation = file_get_contents(base_path('composer.install'));
+
+                $pluginInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $pluginInfomation));
+
+                $pluginInfomation = @json_decode($pluginInfomation, true);
+
+                if (count($pluginInfomation) > 0) {
+                    //Extract Plugin Type
+                    $pluginType = explode('-', $pluginInfomation['name']);
+
+                    $pluginType = $pluginType[array_key_last($pluginType)];
+
+                    $this->terminal->config['plugins'][$pluginType] = [];
+                    $this->terminal->config['plugins'][$pluginType]['name'] = $pluginInfomation['name'];
+                    $this->terminal->config['plugins'][$pluginType]['description'] = $pluginInfomation['description'];
+                    $this->terminal->config['plugins'][$pluginType]['class'] = array_keys($pluginInfomation['autoload']['psr-4'])[0] . ucfirst($pluginType);
+
+                    if ($this->runComposerCommand('show -i -f json')) {
+                        $allPackages = file_get_contents(base_path('composer.install'));
+
+                        $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
+
+                        $allPackages = @json_decode($allPackages, true);
+
+                        if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                            foreach ($allPackages['installed'] as $key => $package) {
+                                if ($package['name'] === $pluginInfomation['name']) {
+                                    $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    try {
+                        include
+                            $pluginInfomation['path'] . '/' . $pluginInfomation['autoload']['psr-4'][array_keys($pluginInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
+
+                        $this->terminal->config['plugins'][$pluginType]['settings'] =
+                            (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
+                    } catch (\throwable $e) {
+                        $this->terminal->config['plugins'][$pluginType]['settings'] = [];
+                    }
+
+                    $this->terminal->updateConfig($this->terminal->config);
+
+                    if (strtolower($pluginType) === 'auth') {
+                        $this->terminal->setWhereAt('disable');
+                        $this->terminal->setPrompt('> ');
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    protected function composerUpgradePlugin($args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide plugin name to remove', 1);
+
+            return false;
+        }
+
+        \cli\line("");
+        \cli\line("%bUpgrading...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('upgrade -n ' . $args[0])) {
+            $this->readComposerInstallFile();
+
+            //Extract Plugin Type
+            $pluginType = explode('-', $args[0]);
+
+            $pluginType = $pluginType[array_key_last($pluginType)];
+
+            if ($this->runComposerCommand('show -i -f json')) {
+                $allPackages = file_get_contents(base_path('composer.install'));
+
+                $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
+
+                $allPackages = @json_decode($allPackages, true);
+
+                if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                    foreach ($allPackages['installed'] as $key => $package) {
+                        if ($package['name'] === $args[0]) {
+                            $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            try {
+                $this->terminal->config['plugins'][$pluginType]['settings'] =
+                    (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
+            } catch (\throwable $e) {
+                $this->terminal->config['plugins'][$pluginType]['settings'] = [];
+            }
+
+            $this->terminal->updateConfig($this->terminal->config);
+        }
+
+        return true;
+    }
+
+    protected function composerRemovePlugin($args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide plugin name to remove', 1);
+
+            return false;
+        }
+
+        \cli\line("");
+        \cli\line("%bRemoving...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('remove -n ' . $args[0])) {
+            $this->readComposerInstallFile();
+
+            foreach ($this->terminal->config['plugins'] as $pluginType => $plugin) {
+                if ($plugin['name'] === $args[0]) {
+                    unset($this->terminal->config['plugins'][$pluginType]);
+
+                    break;
+                }
+            }
+
+            $this->terminal->updateConfig($this->terminal->config);
+        }
+
+        return true;
+    }
+
+    protected function composerResync()
+    {
+        \cli\line("");
+        \cli\line("%bRe-syncing...%w");
+        \cli\line("");
+
+        if ($this->runComposerCommand('show -i -f json')) {
+            $allPackages = file_get_contents(base_path('composer.install'));
+
+            $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
+
+            $allPackages = @json_decode($allPackages, true);
+
+            if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                if (count($this->terminal->config['plugins']) > 0) {
+                    foreach ($this->terminal->config['plugins'] as $pluginKey => $plugin) {
+                        $found = false;
+
+                        foreach ($allPackages['installed'] as $key => $package) {
+                            if ($plugin['name'] === $package['name']) {
+                                $found = true;
+
+                                $this->terminal->config['plugins'][$pluginKey]['version'] = $package['version'];
+
+                                break;
+                            }
+                        }
+
+                        if (!$found) {//If package was uninstalled
+                            unset($this->terminal->config['plugins'][$pluginKey]);
+                        }
+                    }
+                }
+
+                if (count($this->terminal->config['modules']) > 0) {
+                    foreach ($this->terminal->config['modules'] as $moduleKey => $module) {
+                        if ($module['name'] === 'base' && $this->terminal->viaComposer === false) {//if phpterminal was installed via composer.
+                            continue;
+                        }
+
+                        $found = false;
+
+                        foreach ($allPackages['installed'] as $key => $package) {
+                            if ($module['name'] === $package['name']) {
+                                $found = true;
+
+                                $this->terminal->config['modules'][$moduleKey]['version'] = $package['version'];
+
+                                break;
+                            }
+                        }
+
+                        if (!$found && $module['name'] !== 'base') {//If package was uninstalled. We never uninstall base.
+                            unset($this->terminal->config['modules'][$moduleKey]);
+                        }
+                    }
+                }
+
+                $this->terminal->updateConfig($this->terminal->config);
+            }
+
+            $this->terminal->addResponse('Re-sync successful!');
+
+            return true;
+        }
+
+
+        return false;
+    }
+
     protected function runComposerCommand($command)
     {
         try {
@@ -340,6 +575,12 @@ class Enable extends Modules
             [
                 [
                     "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "General commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
                     "command"       => "clear history",
                     "description"   => "Clear terminal history",
                     "function"      => "clearHistory"
@@ -349,6 +590,24 @@ class Enable extends Modules
                     "command"       => "config terminal",
                     "description"   => "Configure terminal Settings",
                     "function"      => "configTerminal"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "exit",
+                    "description"   => "Exit enable mode",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "quit",
+                    "description"   => "Quit Terminal",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "show commands",
+                    "function"      => ""
                 ],
                 [
                     "availableAt"   => "enable",
@@ -376,6 +635,12 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "composer commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
                     "command"       => "composer search plugins",
                     "description"   => "Search plugins via composer.",
                     "function"      => "composer"
@@ -400,21 +665,33 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "composer resync",
-                    "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
+                    "command"       => "composer search modules",
+                    "description"   => "Search modules via composer.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "exit",
-                    "description"   => "Exit enable mode",
-                    "function"      => ""
+                    "command"       => "composer install module",
+                    "description"   => "composer install module {module_name}. To install module directly from composer.",
+                    "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "quit",
-                    "description"   => "Quit Terminal",
-                    "function"      => ""
+                    "command"       => "composer upgrade module",
+                    "description"   => "composer upgrade module {module_name}. To upgrade module directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer remove module",
+                    "description"   => "composer remove module {module_name}. To remove module directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer resync",
+                    "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
+                    "function"      => "composer"
                 ]
             ];
     }

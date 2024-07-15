@@ -151,6 +151,12 @@ class Terminal extends Base
                 \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%W");
                 $table = new \cli\Table();
                 $table->setHeaders(['Available Commands', 'Description']);
+                foreach ($moduleCommands as &$moduleCommand) {
+                    if (strtolower($moduleCommand[0]) === '') {
+                        $moduleCommand[0] = '%y' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[1] = '';
+                    }
+                }
                 $table->setRows($moduleCommands);
                 $table->setRenderer(new \cli\table\Ascii([25, 100]));
                 $table->display();
@@ -486,7 +492,9 @@ class Terminal extends Base
                 if (!isset($this->autoCompleteList[$module['availableAt']])) {
                     $this->autoCompleteList[$module['availableAt']] = [];
                 }
-                array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
+                if ($module['command'] !== '') {
+                    array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
+                }
 
                 if (!isset($this->helpList[$module['availableAt']][$module['module_name']])) {
                     $this->helpList[$module['availableAt']][$module['module_name']] = [];
@@ -497,7 +505,9 @@ class Terminal extends Base
                 if (!isset($this->execCommandsList[$module['availableAt']])) {
                     $this->execCommandsList[$module['availableAt']] = [];
                 }
-                array_push($this->execCommandsList[$module['availableAt']], $module);
+                if ($module['command'] !== '') {
+                    array_push($this->execCommandsList[$module['availableAt']], $module);
+                }
             }
         }
 
