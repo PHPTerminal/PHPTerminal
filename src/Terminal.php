@@ -82,6 +82,16 @@ class Terminal extends Base
 
         while (true) {
             if ($command === 'quit') {
+                if ($this->whereAt === 'enable' || $this->whereAt === 'config') {
+                    if ($this->account) {
+                        $path = $this->checkHistoryPath();
+
+                        if ($path) {
+                            readline_write_history($path . $this->account['id']);
+                        }
+                    }
+                }
+
                 break;
             } else if ($command === 'exit') {
                 if ($this->whereAt === 'disable') {
@@ -91,8 +101,12 @@ class Terminal extends Base
                         $this->whereAt = 'enable';
                         $this->prompt = '# ';
                     } else {
-                        if ($this->account && $this->checkHistoryPath()) {
-                            readline_write_history(base_path('var/terminal/history/' . $this->account['id']));
+                        if ($this->account) {
+                            $path = $this->checkHistoryPath();
+
+                            if ($path) {
+                                readline_write_history($path . $this->account['id']);
+                            }
                         }
 
                         $this->account = null;
@@ -490,14 +504,20 @@ class Terminal extends Base
         $this->setLocalContent();
     }
 
-    protected function checkHistoryPath()
+    public function checkHistoryPath()
     {
-        if (!is_dir(base_path('terminaldata/var/terminal/history/'))) {
-            if (!mkdir(base_path('terminaldata/var/terminal/history/'), 0777, true)) {
+        if ($this->dataPath) {
+            $path = $this->dataPath . 'var/terminal/history/';
+        } else {
+            $path = base_path('terminaldata/var/terminal/history/');
+        }
+
+        if (!is_dir($path)) {
+            if (!mkdir($path, 0777, true)) {
                 return false;
             }
         }
 
-        return true;
+        return $path;
     }
 }

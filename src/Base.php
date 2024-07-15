@@ -30,8 +30,18 @@ abstract class Base
 
     public $config;
 
+    public $viaComposer = false;
+
+    protected $dataPath;
+
     public function __construct($createRoot = false, $dataPath = null)
     {
+        if ($dataPath) {
+            $this->dataPath = $dataPath;
+
+            $viaComposer = true;
+        }
+
         $this->checkTerminalPath();
 
         $this->commandsData = new CommandsData;

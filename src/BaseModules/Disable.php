@@ -160,7 +160,11 @@ class Disable extends Modules
             $this->terminal->setAccount($account);
             $this->terminal->setLoginAt(time());
 
-            readline_read_history(base_path('var/terminal/history/' . $this->terminal->getAccount()['id']));
+            $path = $this->terminal->checkHistoryPath();
+
+            if ($path) {
+                readline_read_history($path . $this->terminal->getAccount()['id']);
+            }
         }
     }
 
