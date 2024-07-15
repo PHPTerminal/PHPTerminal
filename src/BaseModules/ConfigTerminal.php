@@ -95,7 +95,7 @@ class ConfigTerminal extends Modules
             }
         }
 
-        $this->terminal->addResponse('Could not update password. Contact developer!', 1);
+        $this->terminal->addResponse('Password not updated!', 1);
 
         return false;
     }
