@@ -1,5 +1,5 @@
 {
-    "name": "oyeaussie/phpterminal",
+    "name": "phpterminal/phpterminal",
     "description": "PHPTerminal is a CLI application to make calls using predefined commands. It runs continuously giving the user a feeling of working on a Unix terminal.",
     "keywords": [
         "php",
@@ -9,7 +9,7 @@
         {
             "name": "Oyeaussie",
             "email": "email@oyeaussie.com",
-            "homepage": "https://github.com/oyeaussie"
+            "homepage": "https://github.com/phpterminal/PHPTerminal"
         }
     ],
     "funding": [
