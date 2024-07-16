@@ -130,6 +130,8 @@ class Terminal extends Base
                     $this->whereAt = 'config';
                     $this->extractAllCommands(true, false, false);
                 }
+            } else if ($command === 'clear') {
+                system('clear');
             } else if ($command === 'quit') {
                 if ($this->whereAt === 'enable' || $this->whereAt === 'config') {
                     if ($this->account) {
@@ -810,7 +812,10 @@ class Terminal extends Base
                 'global' => [
                     'base'  => [
                         [
-                            "exit", "Change to previous mode or quit terminal if in disable mode."
+                            "clear", "Clear screen"
+                        ],
+                        [
+                            "exit", "Change to previous mode or quit terminal if in disable mode"
                         ],
                         [
                             "quit", "Quit Terminal"
