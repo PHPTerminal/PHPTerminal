@@ -159,6 +159,7 @@ class Disable extends Modules
         if ($account) {
             $this->terminal->setAccount($account);
             $this->terminal->setLoginAt(time());
+            $this->terminal->setHostname();
 
             $path = $this->terminal->checkHistoryPath();
 

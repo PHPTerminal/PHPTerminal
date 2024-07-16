@@ -134,6 +134,7 @@ class Terminal extends Base
                         $this->account = null;
                         $this->whereAt = 'disable';
                         $this->prompt = '> ';
+                        $this->setHostname();
                     }
                 }
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
@@ -380,7 +381,9 @@ class Terminal extends Base
 
     public function setHostname()
     {
-        $this->hostname = '[' . $this->module . '] '  . $this->config['hostname'];
+        $hostname = ($this->account ? $this->account['username'] . '@' : '') . $this->config['hostname'];
+
+        $this->hostname = "\001\033[1;36m\002$hostname\001\033[0m\002:\001\033[1;35m\002$this->module\001\033[0m\002";
     }
 
     public function setBanner()

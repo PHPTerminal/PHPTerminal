@@ -110,5 +110,7 @@ class Modules implements ModulesInterface
 
             fclose($handle);
         }
+
+        \cli\line("%w");
     }
 }
