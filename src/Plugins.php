@@ -7,13 +7,11 @@ use PHPTerminal\Terminal;
 
 class Plugins implements PluginsInterface
 {
-    public function init(Terminal $terminal) : object
-    {
-        //
-    }
+    public function init(Terminal $terminal) : object {}
 
-    public function getSettings() : array
-    {
-        //
-    }
+    public function onInstall() : object {}
+
+    public function onUninstall() : object {}
+
+    public function getSettings() : array {}
 }

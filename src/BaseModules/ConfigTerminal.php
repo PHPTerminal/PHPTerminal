@@ -152,11 +152,12 @@ class ConfigTerminal extends Modules
                     }
 
                     try {
-                        include
-                            $pluginInfomation['path'] . '/' . $pluginInfomation['autoload']['psr-4'][array_keys($pluginInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
+                        if (!class_exists($this->terminal->config['plugins'][$pluginType]['class'])) {
+                            include $pluginInfomation['path'] . '/' . $pluginInfomation['autoload']['psr-4'][array_keys($pluginInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
+                        }
 
                         $this->terminal->config['plugins'][$pluginType]['settings'] =
-                            (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
+                            (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal, null)->onInstall()->getSettings();
                     } catch (\throwable $e) {
                         $this->terminal->config['plugins'][$pluginType]['settings'] = [];
                     }
@@ -236,13 +237,17 @@ class ConfigTerminal extends Modules
         \cli\line("%bRemoving...%w");
         \cli\line("");
 
-        if ($this->runComposerCommand('remove -n ' . $args[0])) {
-            $this->readComposerInstallFile();
-
+        if ($this->runComposerCommand('remove --dry-run -n ' . $args[0])) {
             foreach ($this->terminal->config['plugins'] as $pluginType => $plugin) {
                 if ($plugin['name'] === $args[0]) {
-                    unset($this->terminal->config['plugins'][$pluginType]);
+                    if ((new $plugin['class'])->init($this->terminal)->onUninstall()) {
+                        if ($this->runComposerCommand('remove -n ' . $args[0])) {
+                            $this->readComposerInstallFile();
 
+                            unset($this->terminal->config['plugins'][$pluginType]);
+
+                        }
+                    }
                     break;
                 }
             }

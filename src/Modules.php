@@ -7,6 +7,14 @@ use PHPTerminal\Terminal;
 
 class Modules implements ModulesInterface
 {
+    public function init(Terminal $terminal, $command) : object {}
+
+    public function onInstall() : object {}
+
+    public function onUninstall() : object {}
+
+    public function getCommands() : array {}
+
     public function __call($method, $args = [])
     {
         $commandArr = explode(' ', $this->command);
@@ -38,16 +46,6 @@ class Modules implements ModulesInterface
         }
 
         return false;
-    }
-
-    public function init(Terminal $terminal, $command) : object
-    {
-        //
-    }
-
-    public function getCommands() : array
-    {
-        //
     }
 
     protected function runComposerCommand($command)
