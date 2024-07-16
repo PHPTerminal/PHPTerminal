@@ -244,7 +244,7 @@ class Terminal extends Base
                     }
                 }
                 $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([25, 100]));
+                $table->setRenderer(new \cli\table\Ascii([25, 125]));
                 $table->display();
                 \cli\line('%w');
             }
@@ -259,7 +259,7 @@ class Terminal extends Base
                     }
                 }
                 $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([25, 100]));
+                $table->setRenderer(new \cli\table\Ascii([25, 125]));
                 $table->display();
                 \cli\line('%w');
             }
