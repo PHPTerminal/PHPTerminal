@@ -7,13 +7,30 @@ use PHPTerminal\Terminal;
 
 class Modules implements ModulesInterface
 {
-    public function init(Terminal $terminal, $command) : object {}
+    public function init(Terminal $terminal, $command) : object
+    {
+        return $this;
+    }
 
-    public function onInstall() : object {}
+    public function onInstall() : object
+    {
+        return $this;
+    }
 
-    public function onUninstall() : object {}
+    public function onUpgrade() : object
+    {
+        return $this;
+    }
 
-    public function getCommands() : array {}
+    public function onUninstall() : object
+    {
+        return $this;
+    }
+
+    public function getCommands() : array
+    {
+        return [];
+    }
 
     public function __call($method, $args = [])
     {

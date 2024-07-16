@@ -100,7 +100,6 @@ class ConfigTerminal extends Modules
         return false;
     }
 
-
     protected function composerInstallPlugin($args)
     {
         if (!isset($args[0])) {
@@ -157,7 +156,7 @@ class ConfigTerminal extends Modules
                         }
 
                         $this->terminal->config['plugins'][$pluginType]['settings'] =
-                            (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal, null)->onInstall()->getSettings();
+                            (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onInstall()->getSettings();
                     } catch (\throwable $e) {
                         $this->terminal->config['plugins'][$pluginType]['settings'] = [];
                     }
@@ -214,7 +213,7 @@ class ConfigTerminal extends Modules
 
             try {
                 $this->terminal->config['plugins'][$pluginType]['settings'] =
-                    (new $this->terminal->config['plugins'][$pluginType]['class'])->getSettings();
+                    (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onUpgrade()->getSettings();
             } catch (\throwable $e) {
                 $this->terminal->config['plugins'][$pluginType]['settings'] = [];
             }
