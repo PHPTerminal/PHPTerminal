@@ -328,6 +328,42 @@ class Terminal extends Base
 
                     $filterFound = false;
 
+                    if ($this->filters && $this->displayMode === 'table') {
+                        if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
+                            $columnsKeys = [];
+
+                            foreach ($this->filters['keys'] as $keysKey => $keysValue) {
+                                $columnKey = array_search(strtolower($keysValue), $this->commandsData->showColumns);
+
+                                if ($columnKey !== false) {
+                                    if (!in_array($columnKey, $columnsKeys)) {
+                                        array_push($columnsKeys, $columnKey);
+                                    }
+                                }
+                            }
+
+                            if (count($columnsKeys) > 0) {
+                                $headers = [];
+                                foreach ($this->commandsData->showColumns as $showColumnKey => $showColumn) {
+                                    if (in_array($showColumnKey, $columnsKeys)) {
+                                        array_push($headers, $showColumn);
+                                    }
+                                }
+                                $this->commandsData->showColumns = $headers;
+
+                                $widths = [];
+                                foreach ($this->commandsData->columnsWidths as $columnWidthKey => $columnWidth) {
+                                    if (in_array($columnWidthKey, $columnsKeys)) {
+                                        array_push($widths, $columnWidth);
+                                    }
+                                }
+                                $this->commandsData->columnsWidths = $widths;
+
+                                $filterFound = true;
+                            }
+                        }
+                    }
+
                     foreach ($this->commandsData->responseData as $responseKey => $responseValues) {
                         $responseValues = array_values($responseValues);
                         $responseData = true_flatten($responseValues);
@@ -411,39 +447,39 @@ class Terminal extends Base
 
                     if ($this->displayMode === 'table') {//Draw Table here
                         if ($this->filters) {
-                            if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
-                                \cli\line("%rFilter(s) with grepkey do not work on table view. Change display mode to list via argument '> list'%w");
-                            }
-
-                            foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
-                                if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
-                                    foreach ($responseDataRow as $rDR) {
-                                        if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
-                                            $filterFound = true;
-                                            continue 2;
-                                        }
-                                    }
-                                } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
-                                    foreach ($this->filters['values'] as $filterValue) {
+                            if (isset($this->filters['values']) && count($this->filters['values']) > 0) {
+                                foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
+                                    if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
                                         foreach ($responseDataRow as $rDR) {
-                                            if (str_contains(strtolower($rDR), strtolower($filterValue))) {
+                                            if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
                                                 $filterFound = true;
-                                                continue 3;
+                                                continue 2;
+                                            }
+                                        }
+                                    } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                        foreach ($this->filters['values'] as $filterValue) {
+                                            foreach ($responseDataRow as $rDR) {
+                                                if (str_contains(strtolower($rDR), strtolower($filterValue))) {
+                                                    $filterFound = true;
+                                                    continue 3;
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                unset($responseDataRows[$responseDataRowsKey]);
+                                    unset($responseDataRows[$responseDataRowsKey]);
+                                }
+                                $responseDataRows = array_values($responseDataRows);
                             }
-                            $responseDataRows = array_values($responseDataRows);
                         }
 
-                        $table = new \cli\Table();
-                        $table->setHeaders($responseHeaders);
-                        $table->setRows($responseDataRows);
-                        $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
-                        $table->display();
+                        if (count($responseDataRows) > 0) {
+                            $table = new \cli\Table();
+                            $table->setHeaders($responseHeaders);
+                            $table->setRows($responseDataRows);
+                            $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
+                            $table->display();
+                        }
                     }
 
                     if ($this->filters && !$filterFound) {
