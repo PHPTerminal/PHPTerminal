@@ -37,6 +37,12 @@ class Terminal extends Base
 
     protected $loginAt;
 
+    protected $filterCommand;
+
+    protected $filters;
+
+    protected $displayMode = 'table';
+
     public function __construct($dataPath = null)
     {
         parent::__construct(false, $dataPath);
@@ -82,6 +88,27 @@ class Terminal extends Base
 
         while (true) {
             $command = trim(strtolower($command));
+
+            $this->filters = null;
+
+            if (str_contains($command, '> list')) {
+                $this->displayMode = 'list';
+
+                $commandArr = explode('> list', $command);
+
+                $command = trim($commandArr[0]);
+            }
+
+            if (str_contains($command, '| grep') || str_contains($command, '| grepkey')) {
+                $this->filterCommand = $command;
+
+                $commandArr = explode('|', $command);
+
+                $command = trim($commandArr[0]);
+                unset($commandArr[0]);
+
+                $this->processFilters($commandArr);
+            }
 
             if (str_starts_with($command, 'do')) {
                 if ($this->whereAt === 'config') {
@@ -143,11 +170,25 @@ class Terminal extends Base
                 if (!$this->searchCommand($command)) {
                     echo "Command " . $command . " not found!\n";
                 } else {
-                    readline_add_history($command);
+                    if ($this->filters) {
+                        if ($this->displayMode === 'list') {
+                            readline_add_history($this->filterCommand . ' > list');
+                        } else {
+                            readline_add_history($this->filterCommand);
+                        }
+                    } else {
+                        if ($this->displayMode === 'list') {
+                            readline_add_history($command . ' > list');
+                        } else {
+                            readline_add_history($command);
+                        }
+                    }
                 }
             } else if ($command && $command !== '') {
                 echo "Command " . $command . " not found!\n";
             }
+
+            $this->displayMode = 'table';
 
             $this->run();
         }
@@ -164,6 +205,28 @@ class Terminal extends Base
         exit(0);
     }
 
+    protected function processFilters(array $filters)
+    {
+        $this->filters['values'] = [];
+        $this->filters['keys'] = [];
+
+        foreach ($filters as $filter) {
+            if (str_contains($filter, 'grepkey')) {
+                if (trim(str_replace('grepkey', '', $filter)) !== '') {
+                    array_push($this->filters['keys'], trim(str_replace('grepkey', '', $filter)));
+                }
+            } else if (str_contains($filter, 'grep')) {
+                if (trim(str_replace('grep', '', $filter)) !== '') {
+                    array_push($this->filters['values'], trim(str_replace('grep', '', $filter)));
+                }
+            }
+        }
+
+        if (count($this->filters['values']) === 0 && count($this->filters['keys']) === 0) {
+            $this->filters = null;
+        }
+    }
+
     protected function showHelp()
     {
         if (isset($this->helpList[$this->whereAt]) &&
@@ -171,12 +234,12 @@ class Terminal extends Base
         ) {
             \cli\line('');
             foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
-                \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%W");
+                \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
                 $table = new \cli\Table();
                 $table->setHeaders(['Available Commands', 'Description']);
                 foreach ($moduleCommands as &$moduleCommand) {
                     if (strtolower($moduleCommand[0]) === '') {
-                        $moduleCommand[0] = '%C' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
                         $moduleCommand[1] = '';
                     }
                 }
@@ -186,12 +249,12 @@ class Terminal extends Base
                 \cli\line('%w');
             }
             foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
-                \cli\line("%yGLOBAL COMMANDS%W");
+                \cli\line("%yGLOBAL COMMANDS%w");
                 $table = new \cli\Table();
                 $table->setHeaders(['Available Commands', 'Description']);
                 foreach ($moduleCommands as &$moduleCommand) {
                     if (strtolower($moduleCommand[0]) === '') {
-                        $moduleCommand[0] = '%C' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
                         $moduleCommand[1] = '';
                     }
                 }
@@ -214,7 +277,7 @@ class Terminal extends Base
                     try {
                         return $this->execCommand($command, $commands);
                     } catch (\Exception $e) {
-                        \cli\line("%r" . $e->getMessage() . "%W");
+                        \cli\line("%r" . $e->getMessage() . "%w");
 
                         return true;
                     }
@@ -252,16 +315,18 @@ class Terminal extends Base
             if ($this->commandsData->responseMessage && $this->commandsData->responseMessage !== '') {
                 \cli\line($color . $this->commandsData->responseMessage);
             }
-            \cli\out("%W");
+            \cli\out("%w");
 
             if ($this->commandsData->responseData && count($this->commandsData->responseData) > 0) {
                 if ($this->commandsData->responseDataIsList) {
-                    if ($this->commandsData->showAsTable) {
+                    if ($this->displayMode === 'table') {
                         $responseHeaders = [];
                         $responseDataRows = [];
                     }
 
-                    \cli\line("%y" . strtoupper(array_key_first($this->commandsData->responseData)) . "%W");
+                    \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
+
+                    $filterFound = false;
 
                     foreach ($this->commandsData->responseData as $responseKey => $responseValues) {
                         $responseValues = array_values($responseValues);
@@ -277,20 +342,20 @@ class Terminal extends Base
                             //true_flatten add the parent key to key as [parentKey_key], we remove that and use that to differentiate between different data.
                             $key = explode(' > ', $key);
 
-                            if ($this->commandsData->showAsTable) {
+                            if ($this->displayMode === 'table') {
                                 $rowKey = (int) $key[0];
                             }
 
                             if ((int) $key[0] !== $initialKey) {
                                 $initialKey = (int) $key[0];
 
-                                if (!$this->commandsData->showAsTable) {
+                                if ($this->displayMode === 'list') {
                                     \cli\line("");
                                 }
                             }
 
                             array_shift($key);
-                            $key = join('_', $key);
+                            $key = join(' > ', $key);
 
                             if (count($this->commandsData->replaceColumnNames) > 0 &&
                                 isset($this->commandsData->replaceColumnNames[$key])
@@ -298,7 +363,7 @@ class Terminal extends Base
                                 $key = $this->commandsData->replaceColumnNames[$key];
                             }
 
-                            if ($this->commandsData->showAsTable) {
+                            if ($this->displayMode === 'table') {
                                 if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
                                     array_push($responseHeaders, $key);
                                 }
@@ -310,20 +375,86 @@ class Terminal extends Base
                                     array_push($responseDataRows[$rowKey], $value);
                                 }
                             } else {
-                                \cli\line("%b$key : %W$value");
+                                if ($this->filters) {
+                                    if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
+                                        if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
+                                            $filterFound = true;
+                                            \cli\line("%b$key : %w$value");
+                                        }
+                                    } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
+                                        foreach ($this->filters['keys'] as $filterKey) {
+                                            if (str_contains(strtolower($key), strtolower($filterKey))) {
+                                                $filterFound = true;
+                                                \cli\line("%b$key : %w$value");
+                                            }
+                                        }
+                                    }
+                                    if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
+                                        if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
+                                            $filterFound = true;
+                                            \cli\line("%b$key : %w$value");
+                                        }
+                                    } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                        foreach ($this->filters['values'] as $filterValue) {
+                                            if (str_contains(strtolower($value), strtolower($filterValue))) {
+                                                $filterFound = true;
+                                                \cli\line("%b$key : %w$value");
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    \cli\line("%b$key : %w$value");
+                                }
                             }
                         }
                     }
 
-                    if ($this->commandsData->showAsTable) {//Draw Table here
+                    if ($this->displayMode === 'table') {//Draw Table here
+                        if ($this->filters) {
+                            if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
+                                \cli\line("%rFilter(s) with grepkey do not work on table view. Change display mode to list via argument '> list'%w");
+                            }
+
+                            foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
+                                if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
+                                    foreach ($responseDataRow as $rDR) {
+                                        if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
+                                            $filterFound = true;
+                                            continue 2;
+                                        }
+                                    }
+                                } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                    foreach ($this->filters['values'] as $filterValue) {
+                                        foreach ($responseDataRow as $rDR) {
+                                            if (str_contains(strtolower($rDR), strtolower($filterValue))) {
+                                                $filterFound = true;
+                                                continue 3;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                unset($responseDataRows[$responseDataRowsKey]);
+                            }
+                            $responseDataRows = array_values($responseDataRows);
+                        }
+
                         $table = new \cli\Table();
                         $table->setHeaders($responseHeaders);
                         $table->setRows($responseDataRows);
                         $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
                         $table->display();
                     }
+
+                    if ($this->filters && !$filterFound) {
+                        \cli\line("%rNo data found with filter(s)%w");
+                    }
                 } else {
+                    \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
+
                     $responseData = true_flatten($this->commandsData->responseData);
+
+                    $filterFound = false;
 
                     foreach ($responseData as $key => $value) {
                         if ($value === null || $value === '') {
@@ -336,7 +467,40 @@ class Terminal extends Base
                             $key = $this->commandsData->replaceColumnNames[$key];
                         }
 
-                        \cli\line("%b$key : %W$value");
+                        if ($this->filters) {
+                            if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
+                                if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
+                                    \cli\line("%b$key : %w$value");
+                                    $filterFound = true;
+                                }
+                            } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
+                                foreach ($this->filters['keys'] as $filterKey) {
+                                    if (str_contains(strtolower($key), strtolower($filterKey))) {
+                                        \cli\line("%b$key : %w$value");
+                                        $filterFound = true;
+                                    }
+                                }
+                            }
+                            if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
+                                if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
+                                    \cli\line("%b$key : %w$value");
+                                    $filterFound = true;
+                                }
+                            } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                foreach ($this->filters['values'] as $filterValue) {
+                                    if (str_contains(strtolower($value), strtolower($filterValue))) {
+                                        \cli\line("%b$key : %w$value");
+                                        $filterFound = true;
+                                    }
+                                }
+                            }
+                        } else {
+                            \cli\line("%b$key : %w$value");
+                        }
+                    }
+
+                    if ($this->filters && !$filterFound) {
+                        \cli\line("%rNo data found with filter(s)%w");
                     }
                 }
             }
@@ -392,12 +556,12 @@ class Terminal extends Base
             if (isset($this->config['modules'][$this->module]['banner'])) {
                 $this->config['modules'][$this->module]['banner'] = str_replace('\\\\', '\\', $this->config['modules'][$this->module]['banner']);
 
-                $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%W";
+                $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%w";
             } else {
-                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%W";
+                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
             }
         } else {
-            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%W";
+            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
         }
     }
 

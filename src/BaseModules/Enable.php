@@ -70,7 +70,6 @@ class Enable extends Modules
             0,
             ['Available Modules' => $this->terminal->config['modules'] ?? []],
             true,
-            true,
             [
                 'name', 'description', 'location'
             ],
@@ -102,7 +101,6 @@ class Enable extends Modules
             '',
             0,
             ['Available Plugins' => $this->terminal->config['plugins']],
-            true,
             true,
             [
                 'name', 'version', 'class', 'description'

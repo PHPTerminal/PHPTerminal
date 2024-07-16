@@ -131,7 +131,6 @@ abstract class Base
         int $responseCode = 0,
         $responseData = null,
         $responseDataIsList = false,
-        $showAsTable = false,
         $showColumns = [],
         $columnsWidths = [],
         $replaceColumnNames = []
@@ -148,12 +147,14 @@ abstract class Base
 
         $this->commandsData->responseDataIsList = $responseDataIsList;
 
-        $this->commandsData->showAsTable = $showAsTable;
-
-        if ($showAsTable && (count($showColumns) === 0 || count($showColumns) >= 5)) {
-            throw new \Exception('Showing data as table needs showColumns array set and only 5 columns can be shown. Contact developer!');
+        if ($responseDataIsList &&
+            ($this->displayMode === 'table' && (count($showColumns) === 0 || count($showColumns) > 7))
+        ) {
+            throw new \Exception('Showing data as table needs showColumns array set and only 7 columns can be shown. Contact developer!');
         }
-        if ($showAsTable && (count($columnsWidths) === 0 || count($columnsWidths) !== count($showColumns))) {
+        if ($responseDataIsList &&
+            ($this->displayMode === 'table' && (count($columnsWidths) === 0 || count($columnsWidths) !== count($showColumns)))
+        ) {
             throw new \Exception('Showing data as table needs columnsWidths array set and they should match the number of columns being displayed. Contact developer!');
         }
 
