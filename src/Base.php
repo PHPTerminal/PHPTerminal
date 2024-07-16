@@ -84,7 +84,7 @@ abstract class Base
                 [
                     '_id'           => 1,
                     'hostname'      => 'phpterminal',
-                    'banner'        => 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help at any time' . PHP_EOL . 'Enter command and ? (question mark) for specific command help/options' . PHP_EOL,
+                    'banner'        => 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help.' . PHP_EOL,
                     'active_module' => 'base',
                     'modules'       => [
                         'base'      => [

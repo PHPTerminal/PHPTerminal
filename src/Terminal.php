@@ -81,7 +81,29 @@ class Terminal extends Base
         }
 
         while (true) {
-            if ($command === 'quit') {
+            $command = trim(strtolower($command));
+
+            if (str_starts_with($command, 'do')) {
+                if ($this->whereAt === 'config') {
+                    $this->whereAt = 'enable';
+                    $command = trim(str_replace('do', '', $command));
+
+                    $this->extractAllCommands(true, false, false);
+
+                    if (str_contains($command, '?')) {
+                        $this->showHelp();
+                    } else {
+                        if (!$this->searchCommand($command)) {
+                            echo "Command " . $command . " not found!\n";
+                        } else {
+                            readline_add_history($command);
+                        }
+                    }
+
+                    $this->whereAt = 'config';
+                    $this->extractAllCommands(true, false, false);
+                }
+            } else if ($command === 'quit') {
                 if ($this->whereAt === 'enable' || $this->whereAt === 'config') {
                     if ($this->account) {
                         $path = $this->checkHistoryPath();
@@ -117,13 +139,13 @@ class Terminal extends Base
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
                 $this->showHelp();
             } else if (checkCtype($command, 'alnum', ['/',' ','-'])) {
-                if (!$this->searchCommand(trim(strtolower($command)))) {
-                    echo "Command " . trim($command) . " not found!\n";
+                if (!$this->searchCommand($command)) {
+                    echo "Command " . $command . " not found!\n";
                 } else {
                     readline_add_history($command);
                 }
             } else if ($command && $command !== '') {
-                echo "Command " . trim($command) . " not found!\n";
+                echo "Command " . $command . " not found!\n";
             }
 
             $this->run();
@@ -153,15 +175,31 @@ class Terminal extends Base
                 $table->setHeaders(['Available Commands', 'Description']);
                 foreach ($moduleCommands as &$moduleCommand) {
                     if (strtolower($moduleCommand[0]) === '') {
-                        $moduleCommand[0] = '%y' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[0] = '%C' . strtoupper($moduleCommand[1]) . '%w';
                         $moduleCommand[1] = '';
                     }
                 }
                 $table->setRows($moduleCommands);
                 $table->setRenderer(new \cli\table\Ascii([25, 100]));
                 $table->display();
-                \cli\line('');
+                \cli\line('%w');
             }
+            foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
+                \cli\line("%yGLOBAL COMMANDS%W");
+                $table = new \cli\Table();
+                $table->setHeaders(['Available Commands', 'Description']);
+                foreach ($moduleCommands as &$moduleCommand) {
+                    if (strtolower($moduleCommand[0]) === '') {
+                        $moduleCommand[0] = '%C' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[1] = '';
+                    }
+                }
+                $table->setRows($moduleCommands);
+                $table->setRenderer(new \cli\table\Ascii([25, 100]));
+                $table->display();
+                \cli\line('%w');
+            }
+
         }
     }
 
@@ -309,7 +347,7 @@ class Terminal extends Base
         return false;
     }
 
-    protected function updateAutoComplete()
+    protected function updateAutoComplete($do = false)
     {
         readline_completion_function(function($input, $index) {
             if ($input !== '') {
@@ -331,11 +369,6 @@ class Terminal extends Base
 
             return [];
         });
-    }
-
-    public function getMode()
-    {
-        return $this->module;
     }
 
     public function setActiveModule()
@@ -423,7 +456,6 @@ class Terminal extends Base
             return;
         }
 
-        $this->commands = [];
         $this->modules = [];
 
         foreach ($this->config['modules'] as $module) {
@@ -484,34 +516,71 @@ class Terminal extends Base
             }
         }
 
-        $this->autoCompleteList = [];
-        $this->helpList = [];
+        $this->setLocalContent();
+
+        $this->extractAllCommands();
+    }
+
+    public function extractAllCommands($helpList = true, $autoCompleteList = true, $execCommandsList = true)
+    {
+        if ($helpList) {
+            $this->helpList = [];
+        }
+        if ($autoCompleteList) {
+            $this->autoCompleteList = [];
+        }
 
         foreach ($this->modules as $moduleClass => $modulesArr) {
             foreach ($modulesArr as $module) {
-                if (!isset($this->autoCompleteList[$module['availableAt']])) {
-                    $this->autoCompleteList[$module['availableAt']] = [];
-                }
-                if ($module['command'] !== '') {
-                    array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
-                }
-
-                if (!isset($this->helpList[$module['availableAt']][$module['module_name']])) {
-                    $this->helpList[$module['availableAt']][$module['module_name']] = [];
+                if ($autoCompleteList) {
+                    if (!isset($this->autoCompleteList[$module['availableAt']])) {
+                        $this->autoCompleteList[$module['availableAt']] = [];
+                    }
+                    if ($module['command'] !== '') {
+                        array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
+                    }
                 }
 
-                array_push($this->helpList[$module['availableAt']][$module['module_name']], [$module['command'], $module['description']]);
+                if ($helpList) {
+                    if (!isset($this->helpList[$module['availableAt']][$module['module_name']])) {
+                        $this->helpList[$module['availableAt']][$module['module_name']] = [];
+                    }
 
-                if (!isset($this->execCommandsList[$module['availableAt']])) {
-                    $this->execCommandsList[$module['availableAt']] = [];
+                    array_push($this->helpList[$module['availableAt']][$module['module_name']], [$module['command'], $module['description']]);
                 }
-                if ($module['command'] !== '') {
-                    array_push($this->execCommandsList[$module['availableAt']], $module);
+
+                if ($execCommandsList) {
+                    if (!isset($this->execCommandsList[$module['availableAt']])) {
+                        $this->execCommandsList[$module['availableAt']] = [];
+                    }
+                    if ($module['command'] !== '') {
+                        array_push($this->execCommandsList[$module['availableAt']], $module);
+                    }
                 }
             }
         }
 
-        $this->setLocalContent();
+        if ($autoCompleteList) {
+            foreach (array_keys($this->autoCompleteList) as $whereAt) {//Add global to autocomplete
+                foreach ($this->getGlobalCommands()['global']['base'] as $commandToAdd) {
+                    array_push($this->autoCompleteList[$whereAt], $commandToAdd[0]);
+                }
+                if ($whereAt === 'config') {
+                    foreach ($this->autoCompleteList['enable'] as $enableCommandKey => $enableCommand) {
+                        if (recursive_array_search($enableCommand, $this->getGlobalCommands()['global']['base']) === false) {
+                            array_push($this->autoCompleteList['config'], 'do ' . $enableCommand);
+                        }
+                    }
+                } else {
+
+                }
+            }
+        }
+
+        //Add global to help
+        if ($helpList) {
+            $this->helpList = array_merge($this->helpList, $this->getGlobalCommands());
+        }
     }
 
     public function checkHistoryPath()
@@ -529,5 +598,22 @@ class Terminal extends Base
         }
 
         return $path;
+    }
+
+    protected function getGlobalCommands()
+    {
+        return
+            [
+                'global' => [
+                    'base'  => [
+                        [
+                            "exit", "Change to previous mode or quit terminal if in disable mode."
+                        ],
+                        [
+                            "quit", "Quit Terminal"
+                        ]
+                    ]
+                ]
+            ];
     }
 }

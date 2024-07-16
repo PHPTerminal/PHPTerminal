@@ -49,4 +49,51 @@ class Modules implements ModulesInterface
     {
         //
     }
+
+    protected function runComposerCommand($command)
+    {
+        try {
+            $stream = fopen(base_path('composer.install'), 'w');
+            $input = new \Symfony\Component\Console\Input\StringInput($command);
+            $output = new \Symfony\Component\Console\Output\StreamOutput($stream);
+
+            $application = new \Composer\Console\Application();
+            $application->setAutoExit(false); // prevent `$application->run` method from exiting the script
+
+            $app = $application->run($input, $output);
+        } catch (\throwable $e) {
+            $this->terminal->addResponse($e->getMessage(), 1);
+
+            return false;
+        }
+
+        if ($app !== 0) {
+            if ($app === 100) {
+                $this->terminal->addResponse('Error while installing plugin via composer. Check network connection.', 1);
+            } else {
+                $this->terminal->addResponse('Error while installing plugin via composer. Try again later.', 1);
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function readComposerInstallFile()
+    {
+        $handle = fopen(base_path('composer.install'), "r");
+
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (strpos($line, '<warning>') === 0) {
+                    \cli\line("%y$line%w");
+                } else {
+                    echo $line;
+                }
+            }
+
+            fclose($handle);
+        }
+    }
 }

@@ -174,21 +174,15 @@ class Disable extends Modules
             [
                 [
                     "availableAt"   => "disable",
+                    "command"       => "",
+                    "description"   => "General commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "disable",
                     "command"       => "enable",
                     "description"   => "Enter enable mode",
                     "function"      => "run"
-                ],
-                [
-                    "availableAt"   => "disable",
-                    "command"       => "exit",
-                    "description"   => "Quit Terminal",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "disable",
-                    "command"       => "quit",
-                    "description"   => "Quit Terminal",
-                    "function"      => ""
                 ]
             ];
     }
