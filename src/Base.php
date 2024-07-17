@@ -158,8 +158,7 @@ abstract class Base
         $responseData = null,
         $responseDataIsList = false,
         $showColumns = [],
-        $columnsWidths = [],
-        $replaceColumnNames = []
+        $columnsWidths = []
     ) {
         $this->commandsData->responseMessage = $responseMessage;
 
@@ -187,8 +186,6 @@ abstract class Base
         $this->commandsData->showColumns = $showColumns;
 
         $this->commandsData->columnsWidths = $columnsWidths;
-
-        $this->commandsData->replaceColumnNames = $replaceColumnNames;
     }
 
     // protected function newProgress($processType = 'Downloading...')

@@ -238,7 +238,7 @@ class Terminal extends Base
             foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
                 \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
                 $table = new \cli\Table();
-                $table->setHeaders(['Available Commands', 'Description']);
+                $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
                 foreach ($moduleCommands as &$moduleCommand) {
                     if (strtolower($moduleCommand[0]) === '') {
                         $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
@@ -253,7 +253,7 @@ class Terminal extends Base
             foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
                 \cli\line("%yGLOBAL COMMANDS%w");
                 $table = new \cli\Table();
-                $table->setHeaders(['Available Commands', 'Description']);
+                $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
                 foreach ($moduleCommands as &$moduleCommand) {
                     if (strtolower($moduleCommand[0]) === '') {
                         $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
@@ -372,6 +372,8 @@ class Terminal extends Base
 
                         $initialKey = 0;
 
+                        $filterDataFoundForList = false;
+
                         foreach ($responseData as $key => $value) {
                             if ($value === null || $value === '') {
                                 $value = 'null';
@@ -388,18 +390,19 @@ class Terminal extends Base
                                 $initialKey = (int) $key[0];
 
                                 if ($this->displayMode === 'list') {
-                                    \cli\line("");
+                                    if ($this->filters) {
+                                        if ($filterDataFoundForList) {
+                                            \cli\line("");
+                                            $filterDataFoundForList = false;
+                                        }
+                                    } else {
+                                        \cli\line("");
+                                    }
                                 }
                             }
 
                             array_shift($key);
                             $key = join(' > ', $key);
-
-                            if (count($this->commandsData->replaceColumnNames) > 0 &&
-                                isset($this->commandsData->replaceColumnNames[$key])
-                            ) {
-                                $key = $this->commandsData->replaceColumnNames[$key];
-                            }
 
                             if ($this->displayMode === 'table') {
                                 if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
@@ -417,31 +420,51 @@ class Terminal extends Base
                                     if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
                                         if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
                                             $filterFound = true;
-                                            \cli\line("%b$key : %w$value");
+                                            $filterDataFoundForList = true;
+
+                                            \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                         }
                                     } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
                                         foreach ($this->filters['keys'] as $filterKey) {
                                             if (str_contains(strtolower($key), strtolower($filterKey))) {
                                                 $filterFound = true;
-                                                \cli\line("%b$key : %w$value");
+                                                $filterDataFoundForList = true;
+
+                                                \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                             }
                                         }
                                     }
                                     if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
                                         if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
                                             $filterFound = true;
-                                            \cli\line("%b$key : %w$value");
+                                            $filterDataFoundForList = true;
+
+                                            if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
+                                                if (!in_array($key, $this->filters['keys'])) {
+                                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                                }
+                                            } else {
+                                                \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                            }
                                         }
                                     } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
                                         foreach ($this->filters['values'] as $filterValue) {
                                             if (str_contains(strtolower($value), strtolower($filterValue))) {
                                                 $filterFound = true;
-                                                \cli\line("%b$key : %w$value");
+                                                $filterDataFoundForList = true;
+
+                                                if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
+                                                    if (!in_array($key, $this->filters['keys'])) {
+                                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                                    }
+                                                } else {
+                                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                                }
                                             }
                                         }
                                     }
                                 } else {
-                                    \cli\line("%b$key : %w$value");
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                 }
                             }
                         }
@@ -477,6 +500,11 @@ class Terminal extends Base
 
                         if (count($responseDataRows) > 0) {
                             $table = new \cli\Table();
+
+                            array_walk($responseHeaders, function(&$header) {
+                                $header = strtoupper($header);
+                            });
+
                             $table->setHeaders($responseHeaders);
                             $table->setRows($responseDataRows);
                             $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
@@ -508,32 +536,33 @@ class Terminal extends Base
                         if ($this->filters) {
                             if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
                                 if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
-                                    \cli\line("%b$key : %w$value");
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                     $filterFound = true;
                                 }
                             } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
                                 foreach ($this->filters['keys'] as $filterKey) {
                                     if (str_contains(strtolower($key), strtolower($filterKey))) {
-                                        \cli\line("%b$key : %w$value");
+                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                         $filterFound = true;
                                     }
                                 }
                             }
                             if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
                                 if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
-                                    \cli\line("%b$key : %w$value");
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                     $filterFound = true;
                                 }
                             } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
                                 foreach ($this->filters['values'] as $filterValue) {
                                     if (str_contains(strtolower($value), strtolower($filterValue))) {
-                                        \cli\line("%b$key : %w$value");
+                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                                         $filterFound = true;
                                     }
                                 }
                             }
                         } else {
-                            \cli\line("%b$key : %w$value");
+
+                            \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                         }
                     }
 
@@ -542,6 +571,7 @@ class Terminal extends Base
                     }
                 }
             }
+
             \cli\line("");
 
             return true;
