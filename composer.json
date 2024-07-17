@@ -34,8 +34,8 @@
         "guzzlehttp/guzzle": "^7.8",
         "league/flysystem": "^3.28",
         "wp-cli/php-cli-tools": "^0.11.22",
-        "rakibtg/sleekdb": "dev-master",
-        "composer/composer": "^2.7@dev"
+        "rakibtg/sleekdb": "*",
+        "composer/composer": "^2.7",
     },
     "autoload": {
         "psr-4": {
