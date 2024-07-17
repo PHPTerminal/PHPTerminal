@@ -417,24 +417,25 @@ class ConfigTerminal extends Modules
 
             $allPackages = @json_decode($allPackages, true);
 
-            if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+            if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {//check for other packages version
+                foreach ($allPackages['installed'] as $key => $installed) {
+                    $allPackages['installed'][$installed['name']] = $installed;
+                    unset($allPackages['installed'][$key]);
+                }
+
                 if (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) > 0) {
                     foreach ($this->terminal->config['plugins'] as $pluginKey => $plugin) {
                         $found = false;
 
-                        foreach ($allPackages['installed'] as $key => $package) {
-                            if ($plugin['name'] === $package['name']) {
-                                $found = true;
+                        if (isset($allPackages['installed'][$plugin['package_name']])) {
+                            $found = true;
 
-                                if ($plugin['name'] !== $package['name']) {
-                                    $this->terminal->config['plugins'][$pluginKey]['version'] = $package['version'];
+                            if ($plugin['version'] !== $allPackages['installed'][$plugin['package_name']]['version']) {
+                                $this->terminal->config['plugins'][$pluginKey]['version'] = $allPackages['installed'][$plugin['package_name']]['version'];
 
-                                    if ($showOutput) {
-                                        \cli\line('%bUpdating plugin ' . $plugin['name'] . ' version to ' . $package['version'] . '...%w');
-                                    }
+                                if ($showOutput) {
+                                    \cli\line('%bUpdating plugin ' . $plugin['package_name'] . ' version to ' . $allPackages['installed'][$plugin['package_name']]['version'] . '...%w');
                                 }
-
-                                break;
                             }
                         }
 
@@ -448,25 +449,19 @@ class ConfigTerminal extends Modules
                     foreach ($this->terminal->config['modules'] as $moduleKey => $module) {
                         if ($module['name'] === 'base' && $this->terminal->viaComposer === false) {//if phpterminal was installed via composer.
                             continue;
-                        } else if ($module['name'] === 'base') {
-                            $module['name'] = 'phpterminal/phpterminal';
                         }
 
                         $found = false;
 
-                        foreach ($allPackages['installed'] as $key => $package) {
-                            if ($module['name'] === $package['name']) {
-                                $found = true;
+                        if (isset($allPackages['installed'][$module['package_name']])) {
+                            $found = true;
 
-                                if ($module['version'] !== $package['version']) {
-                                    $this->terminal->config['modules'][$moduleKey]['version'] = $package['version'];
+                            if ($module['version'] !== $allPackages['installed'][$module['package_name']]['version']) {
+                                $this->terminal->config['modules'][$moduleKey]['version'] = $allPackages['installed'][$module['package_name']]['version'];
 
-                                    if ($showOutput) {
-                                        \cli\line('%bUpdating module ' . $module['name'] . ' version to ' . $package['version'] . '...%w');
-                                    }
+                                if ($showOutput) {
+                                    \cli\line('%bUpdating module ' . $module['package_name'] . ' version to ' . $allPackages['installed'][$module['package_name']]['version'] . '...%w');
                                 }
-
-                                break;
                             }
                         }
 
@@ -477,6 +472,26 @@ class ConfigTerminal extends Modules
                 }
 
                 $this->terminal->updateConfig($this->terminal->config);
+
+                foreach ($allPackages['installed'] as $packageName => $package) {
+                    if (str_contains($package['name'], 'phpterminal-plugins')) {
+                        $nameArr = explode('-', $package['name']);
+
+                        if (!isset($this->terminal->config['plugins'][$nameArr[array_key_last($nameArr)]])) {
+                            \cli\line('%bAdding missing plugin ' . $package['name'] . '...%w');
+
+                            $this->composerAddDetails('plugin', [$package['name']]);
+                        }
+                    } else if (str_contains($package['name'], 'phpterminal-modules')) {
+                        $nameArr = explode('-', $package['name']);
+
+                        if (!isset($this->terminal->config['modules'][$nameArr[array_key_last($nameArr)]])) {
+                            \cli\line('%bAdding missing module ' . $package['name'] . '...%w');
+
+                            $this->composerAddDetails('module', [$package['name']]);
+                        }
+                    }
+                }
 
                 $this->terminal->addResponse('Re-sync successful!');
             } else {
@@ -532,25 +547,25 @@ class ConfigTerminal extends Modules
                 [
                     "availableAt"   => "config",
                     "command"       => "composer add plugin",
-                    "description"   => "composer add plugin {plugin_name}. To add pre-installed plugin (via composer) into phpterminal.",
+                    "description"   => "composer add plugin {plugin_package_name}. To add pre-installed plugin (via composer) into phpterminal.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "composer install plugin",
-                    "description"   => "composer install plugin {plugin_name}. To install plugin directly from composer.",
+                    "description"   => "composer install plugin {plugin_package_name}. To install plugin directly from composer.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "composer upgrade plugin",
-                    "description"   => "composer upgrade plugin {plugin_name}. To upgrade plugin directly from composer.",
+                    "description"   => "composer upgrade plugin {plugin_package_name}. To upgrade plugin directly from composer.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "composer remove plugin",
-                    "description"   => "composer remove plugin {plugin_name}. To remove plugin directly from composer.",
+                    "description"   => "composer remove plugin {plugin_package_name}. To remove plugin directly from composer.",
                     "function"      => "composer"
                 ],
                 [
@@ -562,25 +577,25 @@ class ConfigTerminal extends Modules
                 [
                     "availableAt"   => "config",
                     "command"       => "composer add module",
-                    "description"   => "composer add module {module_name}. To add pre-installed module (via composer) into phpterminal.",
+                    "description"   => "composer add module {module_package_name}. To add pre-installed module (via composer) into phpterminal.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "composer install module",
-                    "description"   => "composer install module {module_name}. To install module directly from composer.",
+                    "description"   => "composer install module {module_package_name}. To install module directly from composer.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "composer upgrade module",
-                    "description"   => "composer upgrade module {module_name}. To upgrade module directly from composer.",
+                    "description"   => "composer upgrade module {module_package_name}. To upgrade module directly from composer.",
                     "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "composer remove module",
-                    "description"   => "composer remove module {module_name}. To remove module directly from composer.",
+                    "description"   => "composer remove module {module_package_name}. To remove module directly from composer.",
                     "function"      => "composer"
                 ],
                 [
