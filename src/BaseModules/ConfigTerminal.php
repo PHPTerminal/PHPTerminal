@@ -159,9 +159,11 @@ class ConfigTerminal extends Modules
             if ($this->composerAddDetails($type, $args)) {
                 return true;
             }
+        } else {
+            $this->readComposerInstallFile(true);
         }
 
-        return false;
+        return true;
     }
 
     protected function composerUpgrade($type, $args)
@@ -195,7 +197,7 @@ class ConfigTerminal extends Modules
 
                 $allPackages = @json_decode($allPackages, true);
 
-                if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
                     foreach ($allPackages['installed'] as $key => $package) {
                         if ($package['name'] === $args[0]) {
                             if ($type === 'plugin') {
@@ -206,7 +208,15 @@ class ConfigTerminal extends Modules
                             break;
                         }
                     }
+                } else {
+                    $this->readComposerInstallFile(true);
+
+                    return true;
                 }
+            } else {
+                $this->readComposerInstallFile(true);
+
+                return true;
             }
 
             try {
@@ -251,7 +261,10 @@ class ConfigTerminal extends Modules
                                 $this->readComposerInstallFile();
 
                                 unset($this->terminal->config['plugins'][$pluginType]);
+                            } else {
+                                $this->readComposerInstallFile(true);
 
+                                return true;
                             }
                         }
                         break;
@@ -262,6 +275,10 @@ class ConfigTerminal extends Modules
             }
 
             $this->terminal->updateConfig($this->terminal->config);
+        } else {
+            $this->readComposerInstallFile(true);
+
+            return true;
         }
 
         return true;
@@ -276,7 +293,7 @@ class ConfigTerminal extends Modules
 
             $composerInfomation = @json_decode($composerInfomation, true);
 
-            if (count($composerInfomation) > 0) {
+            if ($composerInfomation && count($composerInfomation) > 0) {
                 if ($type === 'plugin') {
                     //Extract Plugin Type
                     $pluginType = explode('-', $composerInfomation['name']);
@@ -298,7 +315,7 @@ class ConfigTerminal extends Modules
 
                     $allPackages = @json_decode($allPackages, true);
 
-                    if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                    if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
                         $found = false;
 
                         foreach ($allPackages['installed'] as $key => $package) {
@@ -319,9 +336,13 @@ class ConfigTerminal extends Modules
                             return false;
                         }
                     } else {
+                        $this->readComposerInstallFile(true);
+
                         return false;
                     }
                 } else {
+                    $this->readComposerInstallFile(true);
+
                     return false;
                 }
 
@@ -359,7 +380,11 @@ class ConfigTerminal extends Modules
             return true;
         }
 
-        return false;
+        \cli\line("");
+        \cli\line("%r$args[0] package is not installed locally. Please use command %wcomposer install $type $args[0]%r to install the package.%w");
+        \cli\line("");
+
+        return true;
     }
 
     public function composerResync($showOutput = true)
@@ -377,7 +402,7 @@ class ConfigTerminal extends Modules
 
             $allPackages = @json_decode($allPackages, true);
 
-            if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+            if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
                 if (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) > 0) {
                     foreach ($this->terminal->config['plugins'] as $pluginKey => $plugin) {
                         $found = false;
@@ -437,14 +462,16 @@ class ConfigTerminal extends Modules
                 }
 
                 $this->terminal->updateConfig($this->terminal->config);
+
+                $this->terminal->addResponse('Re-sync successful!');
+            } else {
+                $this->readComposerInstallFile(true);
             }
-
-            $this->terminal->addResponse('Re-sync successful!');
-
-            return true;
+        } else {
+            $this->readComposerInstallFile(true);
         }
 
-        return false;
+        return true;
     }
 
     public function getCommands(): array
