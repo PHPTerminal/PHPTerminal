@@ -97,17 +97,6 @@ class ConfigTerminal extends Modules
         return false;
     }
 
-    protected function composerAddPlugin($args)
-    {
-        if (!isset($args[0])) {
-            $this->terminal->addResponse('Please provide plugin name to install', 1);
-
-            return false;
-        }
-
-        return $this->composerAddDetails('plugin', $args);
-    }
-
     protected function composerInstallPlugin($args)
     {
         return $this->composerInstall('plugin', $args);
@@ -153,7 +142,7 @@ class ConfigTerminal extends Modules
         if ($this->runComposerCommand('require -n ' . $args[0])) {
             $this->readComposerInstallFile();
 
-            if ($this->composerAddDetails($type, $args)) {
+            if ($this->composerAddUpdateDetails($type, $args)) {
                 return true;
             }
         } else {
@@ -175,63 +164,14 @@ class ConfigTerminal extends Modules
         \cli\line("%bUpgrading $type...%w");
         \cli\line("");
 
-        if ($this->runComposerCommand('upgrade -n ' . $args[0])) {
+        if ($this->runComposerCommand('require -n ' . $args[0])) {
             $this->readComposerInstallFile();
 
-            if ($type === 'plugin') {
-                //Extract Plugin Type
-                $pluginType = explode('-', $args[0]);
-
-                $pluginType = $pluginType[array_key_last($pluginType)];
-            } else if ($type === 'module') {
-                //
-            }
-
-            if ($this->runComposerCommand('show -i -f json')) {
-                $allPackages = file_get_contents(base_path('composer.install'));
-
-                $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
-
-                $allPackages = @json_decode($allPackages, true);
-
-                if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
-                    foreach ($allPackages['installed'] as $key => $package) {
-                        if ($package['name'] === $args[0]) {
-                            if ($type === 'plugin') {
-                                $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
-                            } else if ($type === 'module') {
-                                //
-                            }
-                            break;
-                        }
-                    }
-                } else {
-                    $this->readComposerInstallFile(true);
-
-                    return true;
-                }
-            } else {
-                $this->readComposerInstallFile(true);
-
+            if ($this->composerAddUpdateDetails($type, $args, 'upgrade')) {
                 return true;
             }
-
-            try {
-                if ($type === 'plugin') {
-                    $this->terminal->config['plugins'][$pluginType]['settings'] =
-                        (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onUpgrade()->getSettings();
-                } else if ($type === 'module') {
-                    //
-                }
-            } catch (\throwable $e) {
-                if ($type === 'plugin') {
-                    $this->terminal->config['plugins'][$pluginType]['settings'] = [];
-                } else if ($type === 'module') {
-                    //
-                }
-            }
-
-            $this->terminal->updateConfig($this->terminal->config);
+        } else {
+            $this->readComposerInstallFile(true);
         }
 
         return true;
@@ -245,14 +185,21 @@ class ConfigTerminal extends Modules
             return false;
         }
 
+        if (strtolower($args[0]) === 'phpterminal/phpterminal') {
+            $this->terminal->addResponse('Can not remove base module!', 1);
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bRemoving $type...%w");
         \cli\line("");
 
         if ($this->runComposerCommand('remove --dry-run -n ' . $args[0])) {
+            $found = false;
             if ($type === 'plugin') {
                 foreach ($this->terminal->config['plugins'] as $pluginType => $plugin) {
-                    if ($plugin['name'] === $args[0]) {
+                    if ($plugin['package_name'] === $args[0]) {
                         if ((new $plugin['class'])->init($this->terminal)->onUninstall()) {
                             if ($this->runComposerCommand('remove -n ' . $args[0])) {
                                 $this->readComposerInstallFile();
@@ -264,14 +211,76 @@ class ConfigTerminal extends Modules
                                 return true;
                             }
                         }
+                        $found = true;
                         break;
                     }
                 }
             } else if ($type === 'module') {
-                //
+                foreach ($this->terminal->config['modules'] as $moduleKey => $module) {
+                    if ($module['package_name'] === $args[0]) {
+                        if ($this->terminal->config['active_module'] === $moduleKey) {
+                            $this->terminal->addResponse('Can not remove active module!', 1);
+
+                            return false;
+                        }
+
+                        if ($this->runComposerCommand('show -f json ' . $args[0])) {
+                            $composerInfomation = file_get_contents(base_path('composer.install'));
+
+                            $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
+
+                            $composerInfomation = @json_decode($composerInfomation, true);
+
+                            if ($composerInfomation && count($composerInfomation) > 0) {
+                                $namespace = array_keys($composerInfomation['autoload']['psr-4'])[0];
+                                $class = $namespace . ucfirst($moduleKey);
+
+                                try {
+                                    if (!class_exists($class)) {
+                                        include $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_keys($composerInfomation['autoload']['psr-4'])[0]] . ucfirst($moduleKey) . '.php';
+                                    }
+
+                                    (new $class)->init($this->terminal, null)->onUninstall();
+                                } catch (\throwable $e) {
+                                    var_dump($e);
+                                    \cli\line("");
+                                    \cli\line('%yCould not run onUninstall for module ' . $composerInfomation['name'] . ', contact developer!%w');
+                                    \cli\line('%y' . $e->getMessage() . '%w');
+                                    \cli\line("");
+
+                                    return false;
+                                }
+                            }
+                        } else {
+                            $this->readComposerInstallFile(true);
+
+                            return false;
+                        }
+
+                        if ($this->runComposerCommand('remove -n ' . $args[0])) {
+                            $this->readComposerInstallFile();
+
+                            unset($this->terminal->config['modules'][$moduleKey]);
+                        } else {
+                            $this->readComposerInstallFile(true);
+
+                            return true;
+                        }
+                        $found = true;
+                        break;
+                    }
+                }
             }
 
-            $this->terminal->updateConfig($this->terminal->config);
+            if ($found) {
+                $this->terminal->updateConfig($this->terminal->config);
+            } else {
+                $this->terminal->addResponse(ucfirst($type) . ' package ' . $args[0] . ' not found!', 1);
+
+                $this->readComposerInstallFile(true);
+
+                return false;
+            }
         } else {
             $this->readComposerInstallFile(true);
 
@@ -281,8 +290,14 @@ class ConfigTerminal extends Modules
         return true;
     }
 
-    protected function composerAddDetails($type, $args)
+    protected function composerAddUpdateDetails($type, $args, $process = 'install')
     {
+        if ($process === 'install') {
+            $call = 'onInstall';
+        } else if ($process === 'upgrade') {
+            $call = 'onUpgrade';
+        }
+
         if ($this->runComposerCommand('show -f json ' . $args[0])) {
             $composerInfomation = file_get_contents(base_path('composer.install'));
 
@@ -360,8 +375,13 @@ class ConfigTerminal extends Modules
                         }
 
                         $this->terminal->config['plugins'][$pluginType]['settings'] =
-                            (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onInstall()->getSettings();
+                            (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->$call()->getSettings();
                     } catch (\throwable $e) {
+                        \cli\line("");
+                        \cli\line('%yCould not run on' . $process . ' for plugin ' . $composerInfomation['name'] . ', contact developer!%w');
+                        \cli\line('%y' . $e->getMessage() . '%w');
+                        \cli\line("");
+
                         $this->terminal->config['plugins'][$pluginType]['settings'] = [];
                     }
                 }
@@ -375,19 +395,36 @@ class ConfigTerminal extends Modules
                     }
                 } else if ($type === 'module') {
                     try {
+                        $namespace = array_keys($composerInfomation['autoload']['psr-4'])[0];
+                        $class = $namespace . ucfirst($moduleKey);
+                        if (!class_exists($class)) {
+                            include $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_keys($composerInfomation['autoload']['psr-4'])[0]] . ucfirst($moduleKey) . '.php';
+                        }
+
+                        (new $class)->init($this->terminal, null)->$call();
+                    } catch (\throwable $e) {
+                        \cli\line("");
+                        \cli\line('%yCould not run on' . $process . ' for module ' . $composerInfomation['name'] . ', contact developer!%w');
+                        \cli\line('%y' . $e->getMessage() . '%w');
+                        \cli\line("");
+                    }
+
+                    try {
                         $this->terminal->getAllCommands();
                     } catch (\throwable | UnableToListContents $e) {
-                        \cli\line('%rError Loading commands from module ' . $composerInfomation['name'] . ', contact Developer!%w' . PHP_EOL);
+                        \cli\line('%rError Loading commands from module ' . $composerInfomation['name'] . ', contact developer!%w' . PHP_EOL);
 
-                        \cli\line('%yUninstalling installed module%w' . PHP_EOL . PHP_EOL);
+                        if ($process === 'install') {
+                            \cli\line('%yUninstalling installed module%w' . PHP_EOL . PHP_EOL);
 
-                        $this->runComposerCommand('remove -n ' . $args[0]);
+                            $this->runComposerCommand('remove -n ' . $args[0]);
 
-                        $this->readComposerInstallFile();
+                            $this->readComposerInstallFile();
 
-                        unset($this->terminal->config['modules'][$moduleKey]);
+                            unset($this->terminal->config['modules'][$moduleKey]);
 
-                        $this->terminal->updateConfig($this->terminal->config);
+                            $this->terminal->updateConfig($this->terminal->config);
+                        }
                     }
                 }
             }
@@ -480,7 +517,7 @@ class ConfigTerminal extends Modules
                         if (!isset($this->terminal->config['plugins'][$nameArr[array_key_last($nameArr)]])) {
                             \cli\line('%bAdding missing plugin ' . $package['name'] . '...%w');
 
-                            $this->composerAddDetails('plugin', [$package['name']]);
+                            $this->composerAddUpdateDetails('plugin', [$package['name']]);
                         }
                     } else if (str_contains($package['name'], 'phpterminal-modules')) {
                         $nameArr = explode('-', $package['name']);
@@ -488,7 +525,7 @@ class ConfigTerminal extends Modules
                         if (!isset($this->terminal->config['modules'][$nameArr[array_key_last($nameArr)]])) {
                             \cli\line('%bAdding missing module ' . $package['name'] . '...%w');
 
-                            $this->composerAddDetails('module', [$package['name']]);
+                            $this->composerAddUpdateDetails('module', [$package['name']]);
                         }
                     }
                 }

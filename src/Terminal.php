@@ -639,7 +639,9 @@ class Terminal extends Base
 
     public function resetTime()
     {
-        $this->updateConfig(['updatedAt' => time()]);
+        if (isset($this->config['plugins']['auth'])) {
+            $this->updateConfig(['updatedAt' => time()]);
+        }
     }
 
     public function getSessionTimeout()
