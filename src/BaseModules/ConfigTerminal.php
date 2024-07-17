@@ -100,6 +100,17 @@ class ConfigTerminal extends Modules
         return false;
     }
 
+    protected function composerAddPlugin($args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide plugin name to install', 1);
+
+            return false;
+        }
+
+        return $this->composerAddDetails('plugin', $args);
+    }
+
     protected function composerInstallPlugin($args)
     {
         return $this->composerInstall('plugin', $args);
@@ -145,84 +156,12 @@ class ConfigTerminal extends Modules
         if ($this->runComposerCommand('require -n ' . $args[0])) {
             $this->readComposerInstallFile();
 
-            if ($this->runComposerCommand('show -f json ' . $args[0])) {
-                $composerInfomation = file_get_contents(base_path('composer.install'));
-
-                $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
-
-                $composerInfomation = @json_decode($composerInfomation, true);
-
-                if (count($composerInfomation) > 0) {
-                    if ($type === 'plugin') {
-                        //Extract Plugin Type
-                        $pluginType = explode('-', $composerInfomation['name']);
-
-                        $pluginType = $pluginType[array_key_last($pluginType)];
-
-                        $this->terminal->config['plugins'][$pluginType] = [];
-                        $this->terminal->config['plugins'][$pluginType]['name'] = $composerInfomation['name'];
-                        $this->terminal->config['plugins'][$pluginType]['description'] = $composerInfomation['description'];
-                        $this->terminal->config['plugins'][$pluginType]['class'] = array_keys($composerInfomation['autoload']['psr-4'])[0] . ucfirst($pluginType);
-                    } else if ($type === 'module') {
-                        //
-                    }
-
-                    if ($this->runComposerCommand('show -i -f json')) {
-                        $allPackages = file_get_contents(base_path('composer.install'));
-
-                        $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
-
-                        $allPackages = @json_decode($allPackages, true);
-
-                        if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
-                            foreach ($allPackages['installed'] as $key => $package) {
-                                if ($package['name'] === $composerInfomation['name']) {
-                                    if ($type === 'plugin') {
-                                        $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
-                                    } else if ($type === 'module') {
-                                        //
-                                    }
-
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    try {
-                        if ($type === 'plugin') {
-                            if (!class_exists($this->terminal->config['plugins'][$pluginType]['class'])) {
-                                include $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_keys($composerInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
-                            }
-
-                            $this->terminal->config['plugins'][$pluginType]['settings'] =
-                                (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onInstall()->getSettings();
-                        } else if ($type === 'module') {
-                            //
-                        }
-                    } catch (\throwable $e) {
-                        if ($type === 'plugin') {
-                            $this->terminal->config['plugins'][$pluginType]['settings'] = [];
-                        } else if ($type === 'module') {
-                            //
-                        }
-                    }
-
-                    $this->terminal->updateConfig($this->terminal->config);
-
-                    if ($type === 'plugin') {
-                        if (strtolower($pluginType) === 'auth') {
-                            $this->terminal->setWhereAt('disable');
-                            $this->terminal->setPrompt('> ');
-                        }
-                    } else if ($type === 'module') {
-                        //
-                    }
-                }
+            if ($this->composerAddDetails($type, $args)) {
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     protected function composerUpgrade($type, $args)
@@ -326,6 +265,101 @@ class ConfigTerminal extends Modules
         }
 
         return true;
+    }
+
+    protected function composerAddDetails($type, $args)
+    {
+        if ($this->runComposerCommand('show -f json ' . $args[0])) {
+            $composerInfomation = file_get_contents(base_path('composer.install'));
+
+            $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
+
+            $composerInfomation = @json_decode($composerInfomation, true);
+
+            if (count($composerInfomation) > 0) {
+                if ($type === 'plugin') {
+                    //Extract Plugin Type
+                    $pluginType = explode('-', $composerInfomation['name']);
+
+                    $pluginType = $pluginType[array_key_last($pluginType)];
+
+                    $this->terminal->config['plugins'][$pluginType] = [];
+                    $this->terminal->config['plugins'][$pluginType]['name'] = $composerInfomation['name'];
+                    $this->terminal->config['plugins'][$pluginType]['description'] = $composerInfomation['description'];
+                    $this->terminal->config['plugins'][$pluginType]['class'] = array_keys($composerInfomation['autoload']['psr-4'])[0] . ucfirst($pluginType);
+                } else if ($type === 'module') {
+                    //
+                }
+
+                if ($this->runComposerCommand('show -i -f json')) {
+                    $allPackages = file_get_contents(base_path('composer.install'));
+
+                    $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
+
+                    $allPackages = @json_decode($allPackages, true);
+
+                    if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
+                        $found = false;
+
+                        foreach ($allPackages['installed'] as $key => $package) {
+                            if ($package['name'] === $composerInfomation['name']) {
+                                if ($type === 'plugin') {
+                                    $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
+                                } else if ($type === 'module') {
+                                    //
+                                }
+
+                                $found = true;
+
+                                break;
+                            }
+                        }
+
+                        if (!$found) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+
+                try {
+                    if ($type === 'plugin') {
+                        if (!class_exists($this->terminal->config['plugins'][$pluginType]['class'])) {
+                            include $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_keys($composerInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
+                        }
+
+                        $this->terminal->config['plugins'][$pluginType]['settings'] =
+                            (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onInstall()->getSettings();
+                    } else if ($type === 'module') {
+                        //
+                    }
+                } catch (\throwable $e) {
+                    if ($type === 'plugin') {
+                        $this->terminal->config['plugins'][$pluginType]['settings'] = [];
+                    } else if ($type === 'module') {
+                        //
+                    }
+                }
+
+                $this->terminal->updateConfig($this->terminal->config);
+
+                if ($type === 'plugin') {
+                    if (strtolower($pluginType) === 'auth') {
+                        $this->terminal->setWhereAt('disable');
+                        $this->terminal->setPrompt('> ');
+                    }
+                } else if ($type === 'module') {
+                    //
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     protected function composerResync()
@@ -440,6 +474,12 @@ class ConfigTerminal extends Modules
                 ],
                 [
                     "availableAt"   => "config",
+                    "command"       => "composer add plugin",
+                    "description"   => "composer add plugin {plugin_name}. To add pre-installed plugin (via composer) into phpterminal.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
                     "command"       => "composer install plugin",
                     "description"   => "composer install plugin {plugin_name}. To install plugin directly from composer.",
                     "function"      => "composer"
@@ -461,6 +501,12 @@ class ConfigTerminal extends Modules
                     "command"       => "",
                     "description"   => "",
                     "function"      => ""
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer add module",
+                    "description"   => "composer add module {module_name}. To add pre-installed module (via composer) into phpterminal.",
+                    "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",

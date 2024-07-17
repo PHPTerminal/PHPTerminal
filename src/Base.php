@@ -97,6 +97,17 @@ abstract class Base
                 ]
             );
         }
+
+        if ((isset($this->config['modules']) && count($this->config['modules']) === 0) ||
+            !isset($this->config['modules'])
+        ) {
+            $this->config['active_module'] = 'base';
+            $this->config['modules']['base']['name'] = 'base';
+            $this->config['modules']['base']['description'] = 'Base Module';
+            $this->config['modules']['base']['location'] = __DIR__ . '/BaseCommands/';
+
+            $this->configStore->update($this->config);
+        }
     }
 
     public function getConfig()
