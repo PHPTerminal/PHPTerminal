@@ -55,7 +55,7 @@ class Terminal extends Base
             $this->getAllCommands();
         } catch (\throwable | UnableToListContents $e) {
             var_dump($e);
-            \cli\line("%W%1Error Loading commands, contact Developer!\n\n");
+            \cli\line("%rError Loading commands, contact Developer!%w" . PHP_EOL . PHP_EOL);
 
             exit(1);
         }
@@ -308,9 +308,9 @@ class Terminal extends Base
             }
 
             if ($this->commandsData->responseCode == 0) {
-                $color = "%G";
+                $color = "%g";
             } else {
-                $color = "%R";
+                $color = "%r";
             }
 
             \cli\line("");
@@ -525,12 +525,6 @@ class Terminal extends Base
                     foreach ($responseData as $key => $value) {
                         if ($value === null || $value === '') {
                             $value = 'null';
-                        }
-
-                        if (count($this->commandsData->replaceColumnNames) > 0 &&
-                            isset($this->commandsData->replaceColumnNames[$key])
-                        ) {
-                            $key = $this->commandsData->replaceColumnNames[$key];
                         }
 
                         if ($this->filters) {

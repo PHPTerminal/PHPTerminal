@@ -2,6 +2,7 @@
 
 namespace PHPTerminal\BaseModules;
 
+use League\Flysystem\UnableToListContents;
 use PHPTerminal\Modules;
 use PHPTerminal\Terminal;
 
@@ -52,17 +53,15 @@ class ConfigTerminal extends Modules
         return true;
     }
 
-    public function switchModule()
+    protected function switchModule($args)
     {
-        $commandArr = explode(' ', $this->command);
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide module name.', 1);
 
-        if ($commandArr[0] !== 'switch' ||
-            count($commandArr) > 3
-        ) {
             return false;
         }
 
-        $module = strtolower($commandArr[array_key_last($commandArr)]);
+        $module = strtolower($args[0]);
 
         if (isset($this->terminal->config['modules'][$module])) {
             $this->terminal->updateConfig(['active_module' => $module]);
@@ -94,8 +93,6 @@ class ConfigTerminal extends Modules
                 return true;
             }
         }
-
-        $this->terminal->addResponse('Password not updated!', 1);
 
         return false;
     }
@@ -298,14 +295,24 @@ class ConfigTerminal extends Modules
                     //Extract Plugin Type
                     $pluginType = explode('-', $composerInfomation['name']);
 
-                    $pluginType = $pluginType[array_key_last($pluginType)];
+                    $pluginType = strtolower($pluginType[array_key_last($pluginType)]);
 
                     $this->terminal->config['plugins'][$pluginType] = [];
-                    $this->terminal->config['plugins'][$pluginType]['name'] = $composerInfomation['name'];
+                    $this->terminal->config['plugins'][$pluginType]['name'] = $pluginType;
+                    $this->terminal->config['plugins'][$pluginType]['package_name'] = $composerInfomation['name'];
                     $this->terminal->config['plugins'][$pluginType]['description'] = $composerInfomation['description'];
                     $this->terminal->config['plugins'][$pluginType]['class'] = array_keys($composerInfomation['autoload']['psr-4'])[0] . ucfirst($pluginType);
                 } else if ($type === 'module') {
-                    //
+                    //Extract Module Key
+                    $moduleKey = explode('-', $composerInfomation['name']);
+
+                    $moduleKey = strtolower($moduleKey[array_key_last($moduleKey)]);
+
+                    $this->terminal->config['modules'][$moduleKey] = [];
+                    $this->terminal->config['modules'][$moduleKey]['name'] = $moduleKey;
+                    $this->terminal->config['modules'][$moduleKey]['package_name'] = $composerInfomation['name'];
+                    $this->terminal->config['modules'][$moduleKey]['description'] = $composerInfomation['description'];
+                    $this->terminal->config['modules'][$moduleKey]['location'] = $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_key_first($composerInfomation['autoload']['psr-4'])];
                 }
 
                 if ($this->runComposerCommand('show -i -f json')) {
@@ -323,7 +330,7 @@ class ConfigTerminal extends Modules
                                 if ($type === 'plugin') {
                                     $this->terminal->config['plugins'][$pluginType]['version'] = $package['version'];
                                 } else if ($type === 'module') {
-                                    //
+                                    $this->terminal->config['modules'][$moduleKey]['version'] = $package['version'];
                                 }
 
                                 $found = true;
@@ -346,22 +353,16 @@ class ConfigTerminal extends Modules
                     return false;
                 }
 
-                try {
-                    if ($type === 'plugin') {
+                if ($type === 'plugin') {
+                    try {
                         if (!class_exists($this->terminal->config['plugins'][$pluginType]['class'])) {
                             include $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_keys($composerInfomation['autoload']['psr-4'])[0]] . ucfirst($pluginType) . '.php';
                         }
 
                         $this->terminal->config['plugins'][$pluginType]['settings'] =
                             (new $this->terminal->config['plugins'][$pluginType]['class'])->init($this->terminal)->onInstall()->getSettings();
-                    } else if ($type === 'module') {
-                        //
-                    }
-                } catch (\throwable $e) {
-                    if ($type === 'plugin') {
+                    } catch (\throwable $e) {
                         $this->terminal->config['plugins'][$pluginType]['settings'] = [];
-                    } else if ($type === 'module') {
-                        //
                     }
                 }
 
@@ -373,7 +374,21 @@ class ConfigTerminal extends Modules
                         $this->terminal->setPrompt('> ');
                     }
                 } else if ($type === 'module') {
-                    //
+                    try {
+                        $this->terminal->getAllCommands();
+                    } catch (\throwable | UnableToListContents $e) {
+                        \cli\line('%rError Loading commands from module ' . $composerInfomation['name'] . ', contact Developer!%w' . PHP_EOL);
+
+                        \cli\line('%yUninstalling installed module%w' . PHP_EOL . PHP_EOL);
+
+                        $this->runComposerCommand('remove -n ' . $args[0]);
+
+                        $this->readComposerInstallFile();
+
+                        unset($this->terminal->config['modules'][$moduleKey]);
+
+                        $this->terminal->updateConfig($this->terminal->config);
+                    }
                 }
             }
 
@@ -506,7 +521,7 @@ class ConfigTerminal extends Modules
                     "availableAt"   => "config",
                     "command"       => "switch module",
                     "description"   => "switch module {module_name}. Switch terminal module.",
-                    "function"      => "switchModule"
+                    "function"      => "switch"
                 ],
                 [
                     "availableAt"   => "config",

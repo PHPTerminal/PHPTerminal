@@ -56,13 +56,6 @@ class Enable extends Modules
         return true;
     }
 
-    protected function showActiveModule()
-    {
-        $this->terminal->addResponse('', 0, ['Active Module' => $this->terminal->module]);
-
-        return true;
-    }
-
     protected function showAvailableModules()
     {
         $this->terminal->addResponse(
@@ -71,10 +64,10 @@ class Enable extends Modules
             ['Available Modules' => $this->terminal->config['modules'] ?? []],
             true,
             [
-                'name', 'description', 'location'
+                'name', 'package_name', 'version', 'location', 'description'
             ],
             [
-                20,75,75
+                10,50,50,40,15
             ]
         );
 
@@ -103,10 +96,10 @@ class Enable extends Modules
             ['Available Plugins' => $this->terminal->config['plugins']],
             true,
             [
-                'name', 'version', 'class', 'description'
+                'name', 'package_name', 'version', 'class', 'description'
             ],
             [
-                50,50,25,25
+                10,50,50,40,15
             ]
         );
 
@@ -171,12 +164,6 @@ class Enable extends Modules
                     "availableAt"   => "enable",
                     "command"       => "show run",
                     "description"   => "Show running configuration.",
-                    "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show active module",
-                    "description"   => "Show current running module.",
                     "function"      => "show"
                 ],
                 [

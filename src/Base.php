@@ -90,9 +90,10 @@ abstract class Base
                     'modules'       => [
                         'base'      => [
                             'name'          => 'base',
+                            'package_name'  => 'phpterminal/phpterminal',
                             'description'   => 'PHP Terminal Base Module',
-                            'version'       => 'viaGit',
-                            'location'      => __DIR__ . '/BaseModules/'
+                            'location'      => __DIR__ . '/BaseModules/',
+                            'version'       => 'viaGit'
                         ]
                     ],
                     'plugins'       => []
@@ -111,9 +112,10 @@ abstract class Base
         ) {
             $this->config['active_module'] = 'base';
             $this->config['modules']['base']['name'] = 'base';
+            $this->config['modules']['base']['package_name'] = 'phpterminal/phpterminal';
             $this->config['modules']['base']['description'] = 'PHP Terminal Base Module';
-            $this->config['modules']['base']['version'] = 'viaGit';
             $this->config['modules']['base']['location'] = __DIR__ . '/BaseModules/';
+            $this->config['modules']['base']['version'] = 'viaGit';
 
             if ($this->viaComposer) {
                 $config = (new ConfigTerminal())->init($this, null);
