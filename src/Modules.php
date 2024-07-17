@@ -65,7 +65,7 @@ class Modules implements ModulesInterface
         return false;
     }
 
-    protected function runComposerCommand($command)
+    public function runComposerCommand($command)
     {
         try {
             $stream = fopen(base_path('composer.install'), 'w');
@@ -95,7 +95,7 @@ class Modules implements ModulesInterface
         return true;
     }
 
-    protected function readComposerInstallFile()
+    public function readComposerInstallFile()
     {
         $handle = fopen(base_path('composer.install'), "r");
 

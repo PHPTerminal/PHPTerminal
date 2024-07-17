@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\UnableToCheckExistence;
+use PHPTerminal\BaseModules\ConfigTerminal;
 use PHPTerminal\CommandsData;
 use SleekDB\Store;
 use cli\progress\Bar;
@@ -39,7 +40,7 @@ abstract class Base
         if ($dataPath) {
             $this->dataPath = $dataPath;
 
-            $viaComposer = true;
+            $this->viaComposer = true;
         }
 
         $this->checkTerminalPath();
@@ -89,13 +90,20 @@ abstract class Base
                     'modules'       => [
                         'base'      => [
                             'name'          => 'base',
-                            'description'   => 'Base Module',
-                            'location'      => __DIR__ . '/BaseCommands/'
+                            'description'   => 'PHP Terminal Base Module',
+                            'version'       => 'viaGit',
+                            'location'      => __DIR__ . '/BaseModules/'
                         ]
                     ],
                     'plugins'       => []
                 ]
             );
+
+            if ($this->viaComposer) {
+                $config = (new ConfigTerminal())->init($this, null);
+
+                $config->composerResync(false);
+            }
         }
 
         if ((isset($this->config['modules']) && count($this->config['modules']) === 0) ||
@@ -103,10 +111,17 @@ abstract class Base
         ) {
             $this->config['active_module'] = 'base';
             $this->config['modules']['base']['name'] = 'base';
-            $this->config['modules']['base']['description'] = 'Base Module';
-            $this->config['modules']['base']['location'] = __DIR__ . '/BaseCommands/';
+            $this->config['modules']['base']['description'] = 'PHP Terminal Base Module';
+            $this->config['modules']['base']['version'] = 'viaGit';
+            $this->config['modules']['base']['location'] = __DIR__ . '/BaseModules/';
 
-            $this->configStore->update($this->config);
+            if ($this->viaComposer) {
+                $config = (new ConfigTerminal())->init($this, null);
+
+                $config->composerResync(false);
+            } else {
+                $this->configStore->update($this->config);
+            }
         }
     }
 
