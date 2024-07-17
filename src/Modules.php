@@ -32,7 +32,7 @@ class Modules implements ModulesInterface
         return [];
     }
 
-    public function __call($method, $args = [])
+    public function __call($method, $args = []) : bool
     {
         $commandArr = explode(' ', $this->command);
 
@@ -83,28 +83,30 @@ class Modules implements ModulesInterface
         }
 
         if ($app !== 0) {
-            if ($app === 100) {
-                $this->terminal->addResponse('Error while installing plugin via composer. Check network connection.', 1);
-            } else {
-                $this->terminal->addResponse('Error while installing plugin via composer. Try again later.', 1);
-            }
-
             return false;
         }
 
         return true;
     }
 
-    public function readComposerInstallFile()
+    public function readComposerInstallFile($error = false)
     {
+        if ($error) {
+            \cli\line("");
+            \cli\line("%rComposer error...%w");
+            \cli\line("");
+        }
+
         $handle = fopen(base_path('composer.install'), "r");
 
         if ($handle) {
             while (($line = fgets($handle)) !== false) {
-                if (strpos($line, '<warning>') === 0) {
+                if (str_contains($line, '<warning>')) {
                     \cli\line("%y$line%w");
                 } else {
-                    echo $line;
+                    if (!str_contains($line, '.php line')) {
+                        echo $line;
+                    }
                 }
             }
 
