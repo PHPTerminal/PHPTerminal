@@ -362,11 +362,13 @@ class ConfigTerminal extends Modules
         return false;
     }
 
-    protected function composerResync()
+    public function composerResync($showOutput = true)
     {
-        \cli\line("");
-        \cli\line("%bRe-syncing...%w");
-        \cli\line("");
+        if ($showOutput) {
+            \cli\line("");
+            \cli\line("%bRe-syncing...%w");
+            \cli\line("");
+        }
 
         if ($this->runComposerCommand('show -i -f json')) {
             $allPackages = file_get_contents(base_path('composer.install'));
@@ -376,7 +378,7 @@ class ConfigTerminal extends Modules
             $allPackages = @json_decode($allPackages, true);
 
             if (isset($allPackages['installed']) && count($allPackages['installed']) > 0) {
-                if (count($this->terminal->config['plugins']) > 0) {
+                if (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) > 0) {
                     foreach ($this->terminal->config['plugins'] as $pluginKey => $plugin) {
                         $found = false;
 
@@ -384,7 +386,13 @@ class ConfigTerminal extends Modules
                             if ($plugin['name'] === $package['name']) {
                                 $found = true;
 
-                                $this->terminal->config['plugins'][$pluginKey]['version'] = $package['version'];
+                                if ($plugin['name'] !== $package['name']) {
+                                    $this->terminal->config['plugins'][$pluginKey]['version'] = $package['version'];
+
+                                    if ($showOutput) {
+                                        \cli\line('%bUpdating plugin ' . $plugin['name'] . ' version to ' . $package['version'] . '...%w');
+                                    }
+                                }
 
                                 break;
                             }
@@ -396,10 +404,12 @@ class ConfigTerminal extends Modules
                     }
                 }
 
-                if (count($this->terminal->config['modules']) > 0) {
+                if (isset($this->terminal->config['modules']) && count($this->terminal->config['modules']) > 0) {
                     foreach ($this->terminal->config['modules'] as $moduleKey => $module) {
                         if ($module['name'] === 'base' && $this->terminal->viaComposer === false) {//if phpterminal was installed via composer.
                             continue;
+                        } else if ($module['name'] === 'base') {
+                            $module['name'] = 'phpterminal/phpterminal';
                         }
 
                         $found = false;
@@ -408,7 +418,13 @@ class ConfigTerminal extends Modules
                             if ($module['name'] === $package['name']) {
                                 $found = true;
 
-                                $this->terminal->config['modules'][$moduleKey]['version'] = $package['version'];
+                                if ($module['version'] !== $package['version']) {
+                                    $this->terminal->config['modules'][$moduleKey]['version'] = $package['version'];
+
+                                    if ($showOutput) {
+                                        \cli\line('%bUpdating module ' . $module['name'] . ' version to ' . $package['version'] . '...%w');
+                                    }
+                                }
 
                                 break;
                             }
@@ -427,7 +443,6 @@ class ConfigTerminal extends Modules
 
             return true;
         }
-
 
         return false;
     }
@@ -530,7 +545,7 @@ class ConfigTerminal extends Modules
                     "availableAt"   => "config",
                     "command"       => "composer resync",
                     "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
-                    "function"      => "composer"
+                    "function"      => "composerResync"
                 ]
             ];
 
