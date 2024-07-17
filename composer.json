@@ -1,18 +1,21 @@
 {
     "name": "phpterminal/phpterminal",
     "description": "PHPTerminal is a CLI application to make calls using predefined commands. It runs continuously giving the user a feeling of working on a Unix terminal.",
-    "keywords": [
+    "keywords":
+    [
         "php",
         "terminal"
     ],
-    "authors": [
+    "authors":
+    [
         {
             "name": "Oyeaussie",
             "email": "email@oyeaussie.com",
             "homepage": "https://github.com/phpterminal/PHPTerminal"
         }
     ],
-    "funding": [
+    "funding":
+    [
         {
             "url": "https://github.com/sponsors/oyeaussie",
             "type": "github"
@@ -22,28 +25,34 @@
             "type": "other"
         }
     ],
-    "require": {
+    "require":
+    {
         "php": "^7.2.5 || ^8.0",
         "ext-json": "*",
         "guzzlehttp/promises": "^1.5.3 || ^2.0.1",
         "guzzlehttp/psr7": "^1.9.1 || ^2.5.1",
         "psr/http-client": "^1.0",
         "symfony/deprecation-contracts": "^2.2 || ^3.0",
-        "wp-cli/php-cli-tools": "*",
+        "wp-cli/php-cli-tools": "^0.11.22",
         "nesbot/carbon": "*",
         "guzzlehttp/guzzle": "^7.8",
         "league/flysystem": "^3.28",
-        "wp-cli/php-cli-tools": "^0.11.22",
         "rakibtg/sleekdb": "*",
-        "composer/composer": "^2.7",
+        "composer/composer": "^2.7"
     },
-    "autoload": {
-        "psr-4": {
+    "autoload":
+    {
+        "psr-4":
+        {
             "PHPTerminal\\": "src/"
         },
-        "files": ["src/Helpers.php"]
+        "files":
+        [
+            "src/Helpers.php"
+        ]
     },
-    "bin": [
+    "bin":
+    [
         "src/bin/phpterminal"
     ],
     "minimum-stability": "stable",
