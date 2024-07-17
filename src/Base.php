@@ -30,8 +30,18 @@ abstract class Base
 
     public $config;
 
+    public $viaComposer = false;
+
+    protected $dataPath;
+
     public function __construct($createRoot = false, $dataPath = null)
     {
+        if ($dataPath) {
+            $this->dataPath = $dataPath;
+
+            $viaComposer = true;
+        }
+
         $this->checkTerminalPath();
 
         $this->commandsData = new CommandsData;
@@ -74,7 +84,7 @@ abstract class Base
                 [
                     '_id'           => 1,
                     'hostname'      => 'phpterminal',
-                    'banner'        => 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help at any time' . PHP_EOL . 'Enter command and ? (question mark) for specific command help/options' . PHP_EOL,
+                    'banner'        => 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help.' . PHP_EOL,
                     'active_module' => 'base',
                     'modules'       => [
                         'base'      => [
@@ -86,6 +96,17 @@ abstract class Base
                     'plugins'       => []
                 ]
             );
+        }
+
+        if ((isset($this->config['modules']) && count($this->config['modules']) === 0) ||
+            !isset($this->config['modules'])
+        ) {
+            $this->config['active_module'] = 'base';
+            $this->config['modules']['base']['name'] = 'base';
+            $this->config['modules']['base']['description'] = 'Base Module';
+            $this->config['modules']['base']['location'] = __DIR__ . '/BaseCommands/';
+
+            $this->configStore->update($this->config);
         }
     }
 
@@ -121,7 +142,6 @@ abstract class Base
         int $responseCode = 0,
         $responseData = null,
         $responseDataIsList = false,
-        $showAsTable = false,
         $showColumns = [],
         $columnsWidths = [],
         $replaceColumnNames = []
@@ -138,12 +158,14 @@ abstract class Base
 
         $this->commandsData->responseDataIsList = $responseDataIsList;
 
-        $this->commandsData->showAsTable = $showAsTable;
-
-        if ($showAsTable && (count($showColumns) === 0 || count($showColumns) >= 5)) {
-            throw new \Exception('Showing data as table needs showColumns array set and only 5 columns can be shown. Contact developer!');
+        if ($responseDataIsList &&
+            ($this->displayMode === 'table' && (count($showColumns) === 0 || count($showColumns) > 7))
+        ) {
+            throw new \Exception('Showing data as table needs showColumns array set and only 7 columns can be shown. Contact developer!');
         }
-        if ($showAsTable && (count($columnsWidths) === 0 || count($columnsWidths) !== count($showColumns))) {
+        if ($responseDataIsList &&
+            ($this->displayMode === 'table' && (count($columnsWidths) === 0 || count($columnsWidths) !== count($showColumns)))
+        ) {
             throw new \Exception('Showing data as table needs columnsWidths array set and they should match the number of columns being displayed. Contact developer!');
         }
 

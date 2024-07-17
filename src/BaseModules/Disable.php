@@ -159,8 +159,13 @@ class Disable extends Modules
         if ($account) {
             $this->terminal->setAccount($account);
             $this->terminal->setLoginAt(time());
+            $this->terminal->setHostname();
 
-            readline_read_history(base_path('var/terminal/history/' . $this->terminal->getAccount()['id']));
+            $path = $this->terminal->checkHistoryPath();
+
+            if ($path) {
+                readline_read_history($path . $this->terminal->getAccount()['id']);
+            }
         }
     }
 
@@ -170,21 +175,15 @@ class Disable extends Modules
             [
                 [
                     "availableAt"   => "disable",
+                    "command"       => "",
+                    "description"   => "General commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "disable",
                     "command"       => "enable",
                     "description"   => "Enter enable mode",
                     "function"      => "run"
-                ],
-                [
-                    "availableAt"   => "disable",
-                    "command"       => "exit",
-                    "description"   => "Quit Terminal",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "disable",
-                    "command"       => "quit",
-                    "description"   => "Quit Terminal",
-                    "function"      => ""
                 ]
             ];
     }

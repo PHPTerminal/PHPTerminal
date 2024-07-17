@@ -125,7 +125,7 @@ if (!function_exists('true_flatten')) {
             if (is_array($value)) {
                 $return = [...$return, ...true_flatten($value, $p)];
             } else {
-                $return[implode(' > ', $p)] = $value;
+                $return[implode(' > ', $p)] = is_bool($value) ? ($value === true ? 'Yes' : 'No') : $value;
             }
         }
 
@@ -155,5 +155,29 @@ if (!function_exists('extractLineFromFile')) {
         }
 
         return $lineWithWord;
+    }
+}
+
+if (!function_exists('recursive_array_search')) {
+    function recursive_array_search($needle, $haystack, $needleKey = null) {
+        foreach ($haystack as $key => $value) {
+            $current_key = $key;
+
+            if ($needleKey) {
+                if (($needleKey == $key && $needle == $value) ||
+                    (is_array($value) && recursive_array_search($needle, $value, $needleKey) !== false)
+                ) {
+                    return $current_key;
+                }
+            } else {
+                if ($needle == $value ||
+                    (is_array($value) && recursive_array_search($needle, $value, $needleKey) !== false)
+                ) {
+                    return $current_key;
+                }
+            }
+        }
+
+        return false;
     }
 }
