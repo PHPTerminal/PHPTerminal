@@ -127,6 +127,25 @@ class Disable extends Modules
         return $this->run($args, $initial);
     }
 
+    public function getCommands() : array
+    {
+        return
+            [
+                [
+                    "availableAt"   => "disable",
+                    "command"       => "",
+                    "description"   => "General commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "disable",
+                    "command"       => "enable",
+                    "description"   => "Enter enable mode",
+                    "function"      => "run"
+                ]
+            ];
+    }
+
     protected function performLogin()
     {
         try {
@@ -167,24 +186,5 @@ class Disable extends Modules
                 readline_read_history($path . $this->terminal->getAccount()['id']);
             }
         }
-    }
-
-    public function getCommands() : array
-    {
-        return
-            [
-                [
-                    "availableAt"   => "disable",
-                    "command"       => "",
-                    "description"   => "General commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "disable",
-                    "command"       => "enable",
-                    "description"   => "Enter enable mode",
-                    "function"      => "run"
-                ]
-            ];
     }
 }

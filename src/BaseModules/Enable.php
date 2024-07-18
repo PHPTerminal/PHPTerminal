@@ -45,6 +45,79 @@ class Enable extends Modules
         return true;
     }
 
+    public function getCommands() : array
+    {
+        return
+            [
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "General commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "clear history",
+                    "description"   => "Clear terminal history",
+                    "function"      => "clearHistory"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "config terminal",
+                    "description"   => "Configure terminal Settings",
+                    "function"      => "configTerminal"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "show commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "show run",
+                    "description"   => "Show running configuration.",
+                    "function"      => "show"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "show available modules",
+                    "description"   => "Show all available modules.",
+                    "function"      => "show"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "show available plugins",
+                    "description"   => "Show all available plugins.",
+                    "function"      => "show"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "composer commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer search plugins",
+                    "description"   => "Search plugins via composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer search modules",
+                    "description"   => "Search modules via composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "composer check",
+                    "description"   => "composer check {plugins/modules}. Check if installed plugins/modules have any updates.",
+                    "function"      => "composer"
+                ]
+            ];
+    }
+
     protected function showRun()
     {
         $runningConfiguration = $this->terminal->config;
@@ -201,78 +274,5 @@ class Enable extends Modules
         $this->terminal->addResponse('All installed packages are up to date!');
 
         return true;
-    }
-
-    public function getCommands() : array
-    {
-        return
-            [
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "General commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "clear history",
-                    "description"   => "Clear terminal history",
-                    "function"      => "clearHistory"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "config terminal",
-                    "description"   => "Configure terminal Settings",
-                    "function"      => "configTerminal"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "show commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show run",
-                    "description"   => "Show running configuration.",
-                    "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show available modules",
-                    "description"   => "Show all available modules.",
-                    "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show available plugins",
-                    "description"   => "Show all available plugins.",
-                    "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "composer commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "composer search plugins",
-                    "description"   => "Search plugins via composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "composer search modules",
-                    "description"   => "Search modules via composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "composer check",
-                    "description"   => "composer check {plugins/modules}. Check if installed plugins/modules have any updates.",
-                    "function"      => "composer"
-                ]
-            ];
     }
 }

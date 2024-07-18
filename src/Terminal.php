@@ -198,6 +198,259 @@ class Terminal extends Base
         $this->quit();
     }
 
+    public function setActiveModule()
+    {
+        if (isset($this->config['active_module'])) {
+            $this->module = strtolower($this->config['active_module']);
+        }
+    }
+
+    public function setHostname()
+    {
+        $hostname = ($this->account ? $this->account['username'] . '@' : '') . $this->config['hostname'];
+
+        $this->hostname = "\001\033[1;36m\002$hostname\001\033[0m\002:\001\033[1;35m\002$this->module\001\033[0m\002";
+    }
+
+    public function setBanner()
+    {
+        if ($this->module !== 'base') {
+            if (isset($this->config['modules'][$this->module]['banner'])) {
+                $this->config['modules'][$this->module]['banner'] = str_replace('\\\\', '\\', $this->config['modules'][$this->module]['banner']);
+
+                $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%w";
+            } else {
+                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
+            }
+        } else {
+            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
+        }
+    }
+
+    public function setWhereAt($whereAt)
+    {
+        $this->whereAt = $whereAt;
+    }
+
+    public function getWhereAt()
+    {
+        return $this->whereAt;
+    }
+
+    public function resetTime()
+    {
+        if (isset($this->config['plugins']['auth'])) {
+            $this->updateConfig(['updatedAt' => time()]);
+        }
+    }
+
+    public function getSessionTimeout()
+    {
+        return $this->sessionTimeout;
+    }
+
+    public function setPrompt($prompt)
+    {
+        $this->prompt = $prompt;
+    }
+
+    public function getPrompt()
+    {
+        return $this->prompt;
+    }
+
+    public function setLoginAt($time)
+    {
+        $this->loginAt = $time;
+    }
+
+    public function getLoginAt()
+    {
+        return $this->loginAt;
+    }
+
+    public function setAccount($account)
+    {
+        $this->account = $account;
+    }
+
+    public function getAccount()
+    {
+        return $this->account;
+    }
+
+    public function getAllCommands()
+    {
+        if (!isset($this->config['modules']) ||
+            (isset($this->config['modules']) && count($this->config['modules']) === 0)
+        ) {
+            return;
+        }
+
+        $this->modules = [];
+
+        foreach ($this->config['modules'] as $module) {
+            if ($module['name'] === 'base') {
+                $module['location'] = base_path('src/BaseModules/');
+            }
+
+            if ($module['name'] !== 'base' &&
+                strtolower($this->module) !== strtolower($module['name'])
+            ) {
+                continue;
+            }
+
+            $this->setLocalContent(false, $module['location']);
+
+            $modulesFiles =
+            $this->localContent->listContents('.', true)
+            ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
+            ->map(fn (StorageAttributes $attributes) => $attributes->path())
+            ->toArray();
+
+            if (count($modulesFiles) > 0) {
+                foreach ($modulesFiles as $moduleFile) {
+                    $moduleFileNamespace = extractLineFromFile($module['location'] . $moduleFile, 'namespace');
+                    $moduleFilePath = $moduleFile;
+                    $moduleFile = str_replace('.php', '', $moduleFile);
+                    $moduleFile = explode('/', $moduleFile);
+                    $moduleFileNamespace = '\\' . $moduleFileNamespace . '\\' . $moduleFile[array_key_last($moduleFile)];
+
+                    try {
+                        if (!class_exists($moduleFileNamespace)) {
+                            include $module['location'] . $moduleFilePath;
+                        }
+
+                        $moduleInit = (new $moduleFileNamespace())->init($this, null);
+
+                        $moduleReflection = new ReflectionClass($moduleInit);
+                        $moduleInterfaces = $moduleReflection->getInterfaceNames();
+
+                        if ($moduleInterfaces && count($moduleInterfaces) > 0) {
+                            if (!in_array('PHPTerminal\ModulesInterface', $moduleInterfaces)) {
+                                continue;
+                            } else {
+                                $moduleKey = str_replace('\\', '', $moduleFileNamespace);
+
+                                $this->modules[$moduleKey] = $moduleInit->getCommands();
+
+                                foreach ($this->modules[$moduleKey] as &$moduleArr) {
+                                    $moduleArr['class'] = $moduleFileNamespace;
+                                    $moduleArr['module_name'] = $module['name'];
+                                }
+                            }
+                        }
+                    } catch (\throwable $e) {
+                        throw $e;
+                    }
+                }
+            }
+        }
+
+        $this->setLocalContent();
+
+        $this->extractAllCommands();
+    }
+
+    public function extractAllCommands($helpList = true, $autoCompleteList = true, $execCommandsList = true)
+    {
+        if ($helpList) {
+            $this->helpList = [];
+        }
+        if ($autoCompleteList) {
+            $this->autoCompleteList = [];
+        }
+
+        foreach ($this->modules as $moduleClass => $modulesArr) {
+            foreach ($modulesArr as $module) {
+                if ($autoCompleteList) {
+                    if (!isset($this->autoCompleteList[$module['availableAt']])) {
+                        $this->autoCompleteList[$module['availableAt']] = [];
+                    }
+                    if ($module['command'] !== '') {
+                        array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
+                    }
+                }
+
+                if ($helpList) {
+                    if (!isset($this->helpList[$module['availableAt']][$module['module_name']])) {
+                        $this->helpList[$module['availableAt']][$module['module_name']] = [];
+                    }
+
+                    array_push($this->helpList[$module['availableAt']][$module['module_name']], [$module['command'], $module['description']]);
+                }
+
+                if ($execCommandsList) {
+                    if (!isset($this->execCommandsList[$module['availableAt']])) {
+                        $this->execCommandsList[$module['availableAt']] = [];
+                    }
+                    if ($module['command'] !== '') {
+                        array_push($this->execCommandsList[$module['availableAt']], $module);
+                    }
+                }
+            }
+        }
+
+        if ($autoCompleteList) {
+            foreach (array_keys($this->autoCompleteList) as $whereAt) {//Add global to autocomplete
+                foreach ($this->getGlobalCommands()['global']['base'] as $commandToAdd) {
+                    array_push($this->autoCompleteList[$whereAt], $commandToAdd[0]);
+                }
+                if ($whereAt === 'config') {
+                    foreach ($this->autoCompleteList['enable'] as $enableCommandKey => $enableCommand) {
+                        if (recursive_array_search($enableCommand, $this->getGlobalCommands()['global']['base']) === false) {
+                            array_push($this->autoCompleteList['config'], 'do ' . $enableCommand);
+                        }
+                    }
+                } else {
+
+                }
+            }
+        }
+
+        //Add global to help
+        if ($helpList) {
+            $this->helpList = array_merge($this->helpList, $this->getGlobalCommands());
+        }
+    }
+
+    public function checkHistoryPath()
+    {
+        if ($this->dataPath) {
+            $path = $this->dataPath . 'var/terminal/history/';
+        } else {
+            $path = base_path('terminaldata/var/terminal/history/');
+        }
+
+        if (!is_dir($path)) {
+            if (!mkdir($path, 0777, true)) {
+                return false;
+            }
+        }
+
+        return $path;
+    }
+
+    protected function getGlobalCommands()
+    {
+        return
+        [
+            'global' => [
+                'base'  => [
+                    [
+                        "clear", "Clear screen"
+                    ],
+                    [
+                        "exit", "Change to previous mode or quit terminal if in disable mode"
+                    ],
+                    [
+                        "quit", "Quit Terminal"
+                    ]
+                ]
+            ]
+        ];
+    }
+
     protected function quit()
     {
         \cli\line('');
@@ -528,258 +781,5 @@ class Terminal extends Base
 
             return [];
         });
-    }
-
-    public function setActiveModule()
-    {
-        if (isset($this->config['active_module'])) {
-            $this->module = strtolower($this->config['active_module']);
-        }
-    }
-
-    public function setHostname()
-    {
-        $hostname = ($this->account ? $this->account['username'] . '@' : '') . $this->config['hostname'];
-
-        $this->hostname = "\001\033[1;36m\002$hostname\001\033[0m\002:\001\033[1;35m\002$this->module\001\033[0m\002";
-    }
-
-    public function setBanner()
-    {
-        if ($this->module !== 'base') {
-            if (isset($this->config['modules'][$this->module]['banner'])) {
-                $this->config['modules'][$this->module]['banner'] = str_replace('\\\\', '\\', $this->config['modules'][$this->module]['banner']);
-
-                $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%w";
-            } else {
-                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
-            }
-        } else {
-            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
-        }
-    }
-
-    public function setWhereAt($whereAt)
-    {
-        $this->whereAt = $whereAt;
-    }
-
-    public function getWhereAt()
-    {
-        return $this->whereAt;
-    }
-
-    public function resetTime()
-    {
-        if (isset($this->config['plugins']['auth'])) {
-            $this->updateConfig(['updatedAt' => time()]);
-        }
-    }
-
-    public function getSessionTimeout()
-    {
-        return $this->sessionTimeout;
-    }
-
-    public function setPrompt($prompt)
-    {
-        $this->prompt = $prompt;
-    }
-
-    public function getPrompt()
-    {
-        return $this->prompt;
-    }
-
-    public function setLoginAt($time)
-    {
-        $this->loginAt = $time;
-    }
-
-    public function getLoginAt()
-    {
-        return $this->loginAt;
-    }
-
-    public function setAccount($account)
-    {
-        $this->account = $account;
-    }
-
-    public function getAccount()
-    {
-        return $this->account;
-    }
-
-    public function getAllCommands()
-    {
-        if (!isset($this->config['modules']) ||
-            (isset($this->config['modules']) && count($this->config['modules']) === 0)
-        ) {
-            return;
-        }
-
-        $this->modules = [];
-
-        foreach ($this->config['modules'] as $module) {
-            if ($module['name'] === 'base') {
-                $module['location'] = base_path('src/BaseModules/');
-            }
-
-            if ($module['name'] !== 'base' &&
-                strtolower($this->module) !== strtolower($module['name'])
-            ) {
-                continue;
-            }
-
-            $this->setLocalContent(false, $module['location']);
-
-            $modulesFiles =
-            $this->localContent->listContents('.', true)
-            ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
-            ->map(fn (StorageAttributes $attributes) => $attributes->path())
-            ->toArray();
-
-            if (count($modulesFiles) > 0) {
-                foreach ($modulesFiles as $moduleFile) {
-                    $moduleFileNamespace = extractLineFromFile($module['location'] . $moduleFile, 'namespace');
-                    $moduleFilePath = $moduleFile;
-                    $moduleFile = str_replace('.php', '', $moduleFile);
-                    $moduleFile = explode('/', $moduleFile);
-                    $moduleFileNamespace = '\\' . $moduleFileNamespace . '\\' . $moduleFile[array_key_last($moduleFile)];
-
-                    try {
-                        if (!class_exists($moduleFileNamespace)) {
-                            include $module['location'] . $moduleFilePath;
-                        }
-
-                        $moduleInit = (new $moduleFileNamespace())->init($this, null);
-
-                        $moduleReflection = new ReflectionClass($moduleInit);
-                        $moduleInterfaces = $moduleReflection->getInterfaceNames();
-
-                        if ($moduleInterfaces && count($moduleInterfaces) > 0) {
-                            if (!in_array('PHPTerminal\ModulesInterface', $moduleInterfaces)) {
-                                continue;
-                            } else {
-                                $moduleKey = str_replace('\\', '', $moduleFileNamespace);
-
-                                $this->modules[$moduleKey] = $moduleInit->getCommands();
-
-                                foreach ($this->modules[$moduleKey] as &$moduleArr) {
-                                    $moduleArr['class'] = $moduleFileNamespace;
-                                    $moduleArr['module_name'] = $module['name'];
-                                }
-                            }
-                        }
-                    } catch (\throwable $e) {
-                        throw $e;
-                    }
-                }
-            }
-        }
-
-        $this->setLocalContent();
-
-        $this->extractAllCommands();
-    }
-
-    public function extractAllCommands($helpList = true, $autoCompleteList = true, $execCommandsList = true)
-    {
-        if ($helpList) {
-            $this->helpList = [];
-        }
-        if ($autoCompleteList) {
-            $this->autoCompleteList = [];
-        }
-
-        foreach ($this->modules as $moduleClass => $modulesArr) {
-            foreach ($modulesArr as $module) {
-                if ($autoCompleteList) {
-                    if (!isset($this->autoCompleteList[$module['availableAt']])) {
-                        $this->autoCompleteList[$module['availableAt']] = [];
-                    }
-                    if ($module['command'] !== '') {
-                        array_push($this->autoCompleteList[$module['availableAt']], $module['command']);
-                    }
-                }
-
-                if ($helpList) {
-                    if (!isset($this->helpList[$module['availableAt']][$module['module_name']])) {
-                        $this->helpList[$module['availableAt']][$module['module_name']] = [];
-                    }
-
-                    array_push($this->helpList[$module['availableAt']][$module['module_name']], [$module['command'], $module['description']]);
-                }
-
-                if ($execCommandsList) {
-                    if (!isset($this->execCommandsList[$module['availableAt']])) {
-                        $this->execCommandsList[$module['availableAt']] = [];
-                    }
-                    if ($module['command'] !== '') {
-                        array_push($this->execCommandsList[$module['availableAt']], $module);
-                    }
-                }
-            }
-        }
-
-        if ($autoCompleteList) {
-            foreach (array_keys($this->autoCompleteList) as $whereAt) {//Add global to autocomplete
-                foreach ($this->getGlobalCommands()['global']['base'] as $commandToAdd) {
-                    array_push($this->autoCompleteList[$whereAt], $commandToAdd[0]);
-                }
-                if ($whereAt === 'config') {
-                    foreach ($this->autoCompleteList['enable'] as $enableCommandKey => $enableCommand) {
-                        if (recursive_array_search($enableCommand, $this->getGlobalCommands()['global']['base']) === false) {
-                            array_push($this->autoCompleteList['config'], 'do ' . $enableCommand);
-                        }
-                    }
-                } else {
-
-                }
-            }
-        }
-
-        //Add global to help
-        if ($helpList) {
-            $this->helpList = array_merge($this->helpList, $this->getGlobalCommands());
-        }
-    }
-
-    public function checkHistoryPath()
-    {
-        if ($this->dataPath) {
-            $path = $this->dataPath . 'var/terminal/history/';
-        } else {
-            $path = base_path('terminaldata/var/terminal/history/');
-        }
-
-        if (!is_dir($path)) {
-            if (!mkdir($path, 0777, true)) {
-                return false;
-            }
-        }
-
-        return $path;
-    }
-
-    protected function getGlobalCommands()
-    {
-        return
-        [
-            'global' => [
-                'base'  => [
-                    [
-                        "clear", "Clear screen"
-                    ],
-                    [
-                        "exit", "Change to previous mode or quit terminal if in disable mode"
-                    ],
-                    [
-                        "quit", "Quit Terminal"
-                    ]
-                ]
-            ]
-        ];
     }
 }
