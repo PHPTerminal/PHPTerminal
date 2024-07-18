@@ -1,12 +1,29 @@
-#Docker File for SP using oyeaussie/docker-phalcon
-FROM oyeaussie/docker-phalcon
+#From PHP8.3-cli
+FROM php:8.3-cli-alpine
 
-WORKDIR /var/www/html/
+RUN adduser -h /home/admin -s /home/admin/vendor/bin/phpterminal -D admin
+RUN echo -n 'admin:admin' | chpasswd
 
-RUN git clone https://github.com/oyeaussie/PHPTerminal.git
-RUN mkdir /var/www/html/PHPTerminal/terminaldata
+WORKDIR /home/admin
+
+RUN apk update
+RUN apk add --update --no-cache git
+RUN apk add --update --no-cache zip
+
+RUN docker-php-ext-configure pcntl --enable-pcntl && docker-php-ext-install pcntl
+
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
 RUN php composer-setup.php
 RUN php -r "unlink('composer-setup.php');"
-RUN mv composer.phar /var/www/html/PHPTerminal/composer
+RUN mv composer.phar /home/admin/composer
+RUN chmod +x /home/admin/composer
+RUN /home/admin/composer require phpterminal/phpterminal
 ENV COMPOSER_ALLOW_SUPERUSER=1
+
+RUN mkdir /home/admin/terminaldata
+
+RUN apk add --update --no-cache openssh
+RUN echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config
+ENTRYPOINT ["/entrypoint.sh"]
+COPY entrypoint.sh /
+RUN chown -R admin:admin /home/admin/
