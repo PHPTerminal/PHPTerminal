@@ -223,6 +223,8 @@ abstract class Base
 
                 if (ord($input) == 10) {
                     break;
+                } else if (ord($input) == 27) {
+                    return [];
                 } else if (ord($input) == 127) {
                     if (count($inputFieldArr) === 0) {
                         continue;
