@@ -233,15 +233,10 @@ class Enable extends Modules
             }
         }
 
+        $packageToUpdate = false;
+
         if (isset($this->terminal->config[strtolower($args[0])]) && count($this->terminal->config[strtolower($args[0])]) > 0) {
             foreach ($this->terminal->config[strtolower($args[0])] as $package) {
-                if (strtolower($args[0]) === 'modules' &&
-                    $package['package_name'] === 'phpterminal/phpterminal' &&
-                    !$this->terminal->viaComposer
-                ) {
-                    continue;
-                }
-
                 if ($this->runComposerCommand('show -a -l -f json ' . $package['package_name'])) {
                     $composerInfomation = file_get_contents(base_path('composer.install'));
 
@@ -253,9 +248,19 @@ class Enable extends Modules
                         if (isset($composerInfomation['latest']) &&
                             $composerInfomation['latest'] !== $package['version']
                         ) {
+                            $packageToUpdate = true;
                             \cli\line('%yUpdate available for package %w' . $package['package_name']);
                             \cli\line('%bInstalled version: %w' . $package['version']);
                             \cli\line('%bAvailable version: %w' . $composerInfomation['latest']);
+
+                            if (strtolower($args[0]) === 'modules' &&
+                                $package['package_name'] === 'phpterminal/phpterminal'
+                            ) {
+                                \cli\line('%yNOTE: Package phpterminal/phpterminal should be upgraded via composer and not this application.%w');
+                                \cli\line('%yTrying to upgrade phpterminal/phpterminal package via this application will fail and cause errors.%w');
+                                \cli\line('%yUpgrade package via composer and then run, composer resync via config mode to sync the updated package.%w');
+                            }
+
                             \cli\line("");
                         }
                     } else {
@@ -271,7 +276,12 @@ class Enable extends Modules
             }
         }
 
-        $this->terminal->addResponse('All installed packages are up to date!');
+        if ($packageToUpdate) {
+            \cli\line('%gUpdates available for packages. Run %wcomposer upgrade ' . $args[0] . ' {package_name} %gfrom configure terminal mode.%w');
+        } else {
+            \cli\line('%gAll installed packages are up to date!%w');
+        }
+        \cli\line("");
 
         return true;
     }
