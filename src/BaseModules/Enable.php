@@ -129,12 +129,12 @@ class Enable extends Modules
         return true;
     }
 
-    protected function showAvailableModules()
+    protected function showInstalledModules()
     {
         $this->terminal->addResponse(
             '',
             0,
-            ['Available Modules' => $this->terminal->config['modules'] ?? []],
+            ['Installed Modules' => $this->terminal->config['modules'] ?? []],
             true,
             [
                 'name', 'package_name', 'version', 'location', 'description'
@@ -147,7 +147,7 @@ class Enable extends Modules
         return true;
     }
 
-    protected function showAvailablePlugins()
+    protected function showInstalledPlugins()
     {
         if (!isset($this->terminal->config['plugins']) ||
             (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) === 0)
@@ -166,7 +166,7 @@ class Enable extends Modules
         $this->terminal->addResponse(
             '',
             0,
-            ['Available Plugins' => $this->terminal->config['plugins']],
+            ['Installed Plugins' => $this->terminal->config['plugins']],
             true,
             [
                 'name', 'package_name', 'version', 'class', 'description'
