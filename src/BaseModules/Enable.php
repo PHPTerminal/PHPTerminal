@@ -81,14 +81,14 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "show available modules",
-                    "description"   => "Show all available modules.",
+                    "command"       => "show installed modules",
+                    "description"   => "Show all installed modules.",
                     "function"      => "show"
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "show available plugins",
-                    "description"   => "Show all available plugins.",
+                    "command"       => "show installed plugins",
+                    "description"   => "Show all installed plugins.",
                     "function"      => "show"
                 ],
                 [
