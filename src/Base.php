@@ -19,19 +19,19 @@ abstract class Base
 
     public $remoteWebContent;
 
-    protected $progress;
-
-    protected $settings = [];
-
     public $databaseDirectory;
 
     public $storeConfiguration;
 
-    protected $configStore;
-
     public $config;
 
     public $viaComposer = false;
+
+    protected $progress;
+
+    protected $settings = [];
+
+    protected $configStore;
 
     protected $dataPath;
 
@@ -127,11 +127,6 @@ abstract class Base
         }
     }
 
-    public function getConfig()
-    {
-        return $this->config;
-    }
-
     public function updateConfig($config)
     {
         $this->config = array_replace($this->config, $config);
@@ -190,59 +185,73 @@ abstract class Base
         $this->commandsData->columnsWidths = $columnsWidths;
     }
 
-    // protected function newProgress($processType = 'Downloading...')
-    // {
-    //     $this->progress =
-    //         new Bar($processType,
-    //                 ((bool) $this->settings['--resume'] && $this->resumeFrom > 0) ?
-    //                 ($this->hashRangesEnd - $this->resumeFrom) :
-    //                 $this->hashRangesEnd
-    //         );
+    public function newProgress($endCounter, $processType = 'Downloading...')
+    {
+        $this->progress = new Bar($processType, $endCounter);
 
-    //     $this->progress->display();
-    // }
+        $this->progress->display();
+    }
 
-    // public function updateProgress($message)
-    // {
-    //     $this->progress->tick(1, $message);
-    // }
+    public function updateProgress($message)
+    {
+        $this->progress->tick(1, $message);
+    }
 
-    // protected function finishProgress()
-    // {
-    //     $this->progress->finish();
-    // }
+    public function finishProgress()
+    {
+        $this->progress->finish();
+    }
 
-    // protected function writeToFile($file, $hash)
-    // {
-    //     try {
-    //         $separator = ',';
+    public function inputToArray(array $inputFields)
+    {
+        $outputArr = [];
 
-    //         if (isset($this->settings['--type']) &&
-    //             ($file === $this->settings['--type'] . 'checkfile.txt' || $file === $this->settings['--type'] . 'pool.txt')
-    //         ) {
-    //             if ($file === $this->settings['--type'] . 'pool.txt') {
-    //                 $separator = PHP_EOL;
-    //             }
+        foreach ($inputFields as $inputField) {
+            $inputFieldArr = [];
+            $isSecret = false;
 
-    //             $fileLocation = $file;
-    //         } else {
-    //             $fileLocation = 'logs/' . $this->now . '/' . $file;
-    //         }
+            if (str_contains($inputField, '__secret')) {
+                $inputField = str_replace('__secret', '', $inputField);
+                $isSecret = true;
+                readline_callback_handler_install("", function () {});
+            }
 
-    //         if ($this->localContent->fileExists($fileLocation)) {
-    //             @file_put_contents(__DIR__ . '/../data/' . $fileLocation, $hash . $separator, FILE_APPEND | LOCK_EX);
-    //         } else {
-    //             $this->localContent->write($fileLocation, $hash . $separator);
-    //         }
+            \cli\out("%b" . strtoupper($inputField) . ' : %w');
 
-    //         return true;
-    //     } catch (UnableToCheckExistence | UnableToWriteFile | FilesystemException $e) {
-    //         \cli\line('%r' . $e->getMessage() . '%w');
+            while (true) {
+                $input = stream_get_contents(STDIN, 1);
 
-    //         exit;
-    //     }
-    // }
-    //
+                if (ord($input) == 10) {
+                    break;
+                } else if (ord($input) == 127) {
+                    if (count($inputFieldArr) === 0) {
+                        continue;
+                    }
+                    array_pop($inputFieldArr);
+                    fwrite(STDOUT, chr(8));
+                    fwrite(STDOUT, "\033[0K");
+                } else {
+                    $inputFieldArr[] = $input;
+
+                    if ($isSecret) {
+                        fwrite(STDOUT, '*');
+                    }
+                }
+            }
+
+            $outputArr[$inputField] = join($inputFieldArr);
+
+            if ($isSecret) {
+                readline_callback_handler_remove();
+            }
+        }
+
+        \cli\line("");
+
+
+        return $outputArr;
+    }
+
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {

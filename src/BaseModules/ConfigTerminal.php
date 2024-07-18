@@ -21,9 +21,250 @@ class ConfigTerminal extends Modules
         return $this;
     }
 
-    public function run($args = [])
+    public function getCommands(): array
     {
-        //
+        $commands =
+            [
+                [
+                    "availableAt"   => "config",
+                    "command"       => "do",
+                    "description"   => "Run enable mode commands in config mode. Example: do show run, will show running configuration from config mode. do ? will show list of enable mode commands.",
+                    "function"      => "",
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "set hostname",
+                    "description"   => "Set hostname {hostname}",
+                    "function"      => "set",
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "set banner",
+                    "description"   => "Set banner {banner}",
+                    "function"      => "set",
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "set timeout",
+                    "description"   => "Set timeout {seconds}",
+                    "function"      => "set",
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "switch module",
+                    "description"   => "switch module {module_name}. Switch terminal module.",
+                    "function"      => "switch"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "",
+                    "description"   => "composer commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer add plugin",
+                    "description"   => "composer add plugin {plugin_package_name}. To add pre-installed plugin (via composer) into phpterminal.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer install plugin",
+                    "description"   => "composer install plugin {plugin_package_name}. To install plugin directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer upgrade plugin",
+                    "description"   => "composer upgrade plugin {plugin_package_name}. To upgrade plugin directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer remove plugin",
+                    "description"   => "composer remove plugin {plugin_package_name}. To remove plugin directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer add module",
+                    "description"   => "composer add module {module_package_name}. To add pre-installed module (via composer) into phpterminal.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer install module",
+                    "description"   => "composer install module {module_package_name}. To install module directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer upgrade module",
+                    "description"   => "composer upgrade module {module_package_name}. To upgrade module directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer remove module",
+                    "description"   => "composer remove module {module_package_name}. To remove module directly from composer.",
+                    "function"      => "composer"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "composer resync",
+                    "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
+                    "function"      => "composerResync"
+                ]
+            ];
+
+        if (isset($this->terminal->config['plugins']['auth']['settings']['canResetPasswd']) &&
+            $this->terminal->config['plugins']['auth']['settings']['canResetPasswd'] === true
+        ) {
+            array_push($commands,
+                [
+                    "availableAt"   => "config",
+                    "command"       => "",
+                    "description"   => "Auth Plugin Commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "passwd",
+                    "description"   => "Set new password for current logged in user.",
+                    "function"      => "passwd"
+                ]
+            );
+        }
+
+        return $commands;
+    }
+
+    public function passwd()
+    {
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        $account = $auth->getAccount($this->terminal->getAccount()['id']);
+
+        if ($account) {
+            if ($auth->changePassword($account)) {
+                $this->terminal->addResponse('Password updated. Please login again with new password.');
+                $this->terminal->setWhereAt('disable');
+                $this->terminal->setPrompt('> ');
+                $this->terminal->setAccount(null);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function composerResync($showOutput = true)
+    {
+        if ($showOutput) {
+            \cli\line("");
+            \cli\line("%bRe-syncing...%w");
+            \cli\line("");
+        }
+
+        if ($this->runComposerCommand('show -i -f json')) {
+            $allPackages = file_get_contents(base_path('composer.install'));
+
+            $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
+
+            $allPackages = @json_decode($allPackages, true);
+
+            if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {//check for other packages version
+                foreach ($allPackages['installed'] as $key => $installed) {
+                    $allPackages['installed'][$installed['name']] = $installed;
+                    unset($allPackages['installed'][$key]);
+                }
+
+                if (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) > 0) {
+                    foreach ($this->terminal->config['plugins'] as $pluginKey => $plugin) {
+                        $found = false;
+
+                        if (isset($allPackages['installed'][$plugin['package_name']])) {
+                            $found = true;
+
+                            if ($plugin['version'] !== $allPackages['installed'][$plugin['package_name']]['version']) {
+                                $this->terminal->config['plugins'][$pluginKey]['version'] = $allPackages['installed'][$plugin['package_name']]['version'];
+
+                                if ($showOutput) {
+                                    \cli\line('%bUpdating plugin ' . $plugin['package_name'] . ' version to ' . $allPackages['installed'][$plugin['package_name']]['version'] . '...%w');
+                                }
+                            }
+                        }
+
+                        if (!$found) {//If package was uninstalled
+                            unset($this->terminal->config['plugins'][$pluginKey]);
+                        }
+                    }
+                }
+
+                if (isset($this->terminal->config['modules']) && count($this->terminal->config['modules']) > 0) {
+                    foreach ($this->terminal->config['modules'] as $moduleKey => $module) {
+                        if ($module['name'] === 'base' && $this->terminal->viaComposer === false) {//if phpterminal was installed via composer.
+                            continue;
+                        }
+
+                        $found = false;
+
+                        if (isset($allPackages['installed'][$module['package_name']])) {
+                            $found = true;
+
+                            if ($module['version'] !== $allPackages['installed'][$module['package_name']]['version']) {
+                                $this->terminal->config['modules'][$moduleKey]['version'] = $allPackages['installed'][$module['package_name']]['version'];
+
+                                if ($showOutput) {
+                                    \cli\line('%bUpdating module ' . $module['package_name'] . ' version to ' . $allPackages['installed'][$module['package_name']]['version'] . '...%w');
+                                }
+                            }
+                        }
+
+                        if (!$found && $module['name'] !== 'base') {//If package was uninstalled. We never uninstall base.
+                            unset($this->terminal->config['modules'][$moduleKey]);
+                        }
+                    }
+                }
+
+                $this->terminal->updateConfig($this->terminal->config);
+
+                foreach ($allPackages['installed'] as $packageName => $package) {
+                    if (str_contains($package['name'], 'phpterminal-plugins')) {
+                        $nameArr = explode('-', $package['name']);
+
+                        if (!isset($this->terminal->config['plugins'][$nameArr[array_key_last($nameArr)]])) {
+                            \cli\line('%bAdding missing plugin ' . $package['name'] . '...%w');
+
+                            $this->composerAddUpdateDetails('plugin', [$package['name']]);
+                        }
+                    } else if (str_contains($package['name'], 'phpterminal-modules')) {
+                        $nameArr = explode('-', $package['name']);
+
+                        if (!isset($this->terminal->config['modules'][$nameArr[array_key_last($nameArr)]])) {
+                            \cli\line('%bAdding missing module ' . $package['name'] . '...%w');
+
+                            $this->composerAddUpdateDetails('module', [$package['name']]);
+                        }
+                    }
+                }
+
+                $this->terminal->addResponse('Re-sync successful!');
+            } else {
+                $this->readComposerInstallFile(true);
+            }
+        } else {
+            $this->readComposerInstallFile(true);
+        }
+
+        return true;
     }
 
     protected function setHostname(array $args)
@@ -75,26 +316,6 @@ class ConfigTerminal extends Modules
         }
 
         return true;
-    }
-
-    public function passwd()
-    {
-        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
-
-        $account = $auth->getAccount($this->terminal->getAccount()['id']);
-
-        if ($account) {
-            if ($auth->changePassword($account)) {
-                $this->terminal->addResponse('Password updated. Please login again with new password.');
-                $this->terminal->setWhereAt('disable');
-                $this->terminal->setPrompt('> ');
-                $this->terminal->setAccount(null);
-
-                return true;
-            }
-        }
-
-        return false;
     }
 
     protected function composerInstallPlugin($args)
@@ -437,231 +658,5 @@ class ConfigTerminal extends Modules
         \cli\line("");
 
         return true;
-    }
-
-    public function composerResync($showOutput = true)
-    {
-        if ($showOutput) {
-            \cli\line("");
-            \cli\line("%bRe-syncing...%w");
-            \cli\line("");
-        }
-
-        if ($this->runComposerCommand('show -i -f json')) {
-            $allPackages = file_get_contents(base_path('composer.install'));
-
-            $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
-
-            $allPackages = @json_decode($allPackages, true);
-
-            if ($allPackages && isset($allPackages['installed']) && count($allPackages['installed']) > 0) {//check for other packages version
-                foreach ($allPackages['installed'] as $key => $installed) {
-                    $allPackages['installed'][$installed['name']] = $installed;
-                    unset($allPackages['installed'][$key]);
-                }
-
-                if (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) > 0) {
-                    foreach ($this->terminal->config['plugins'] as $pluginKey => $plugin) {
-                        $found = false;
-
-                        if (isset($allPackages['installed'][$plugin['package_name']])) {
-                            $found = true;
-
-                            if ($plugin['version'] !== $allPackages['installed'][$plugin['package_name']]['version']) {
-                                $this->terminal->config['plugins'][$pluginKey]['version'] = $allPackages['installed'][$plugin['package_name']]['version'];
-
-                                if ($showOutput) {
-                                    \cli\line('%bUpdating plugin ' . $plugin['package_name'] . ' version to ' . $allPackages['installed'][$plugin['package_name']]['version'] . '...%w');
-                                }
-                            }
-                        }
-
-                        if (!$found) {//If package was uninstalled
-                            unset($this->terminal->config['plugins'][$pluginKey]);
-                        }
-                    }
-                }
-
-                if (isset($this->terminal->config['modules']) && count($this->terminal->config['modules']) > 0) {
-                    foreach ($this->terminal->config['modules'] as $moduleKey => $module) {
-                        if ($module['name'] === 'base' && $this->terminal->viaComposer === false) {//if phpterminal was installed via composer.
-                            continue;
-                        }
-
-                        $found = false;
-
-                        if (isset($allPackages['installed'][$module['package_name']])) {
-                            $found = true;
-
-                            if ($module['version'] !== $allPackages['installed'][$module['package_name']]['version']) {
-                                $this->terminal->config['modules'][$moduleKey]['version'] = $allPackages['installed'][$module['package_name']]['version'];
-
-                                if ($showOutput) {
-                                    \cli\line('%bUpdating module ' . $module['package_name'] . ' version to ' . $allPackages['installed'][$module['package_name']]['version'] . '...%w');
-                                }
-                            }
-                        }
-
-                        if (!$found && $module['name'] !== 'base') {//If package was uninstalled. We never uninstall base.
-                            unset($this->terminal->config['modules'][$moduleKey]);
-                        }
-                    }
-                }
-
-                $this->terminal->updateConfig($this->terminal->config);
-
-                foreach ($allPackages['installed'] as $packageName => $package) {
-                    if (str_contains($package['name'], 'phpterminal-plugins')) {
-                        $nameArr = explode('-', $package['name']);
-
-                        if (!isset($this->terminal->config['plugins'][$nameArr[array_key_last($nameArr)]])) {
-                            \cli\line('%bAdding missing plugin ' . $package['name'] . '...%w');
-
-                            $this->composerAddUpdateDetails('plugin', [$package['name']]);
-                        }
-                    } else if (str_contains($package['name'], 'phpterminal-modules')) {
-                        $nameArr = explode('-', $package['name']);
-
-                        if (!isset($this->terminal->config['modules'][$nameArr[array_key_last($nameArr)]])) {
-                            \cli\line('%bAdding missing module ' . $package['name'] . '...%w');
-
-                            $this->composerAddUpdateDetails('module', [$package['name']]);
-                        }
-                    }
-                }
-
-                $this->terminal->addResponse('Re-sync successful!');
-            } else {
-                $this->readComposerInstallFile(true);
-            }
-        } else {
-            $this->readComposerInstallFile(true);
-        }
-
-        return true;
-    }
-
-    public function getCommands(): array
-    {
-        $commands =
-            [
-                [
-                    "availableAt"   => "config",
-                    "command"       => "do",
-                    "description"   => "Run enable mode commands in config mode. Example: do show run, will show running configuration from config mode. do ? will show list of enable mode commands.",
-                    "function"      => "",
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "set hostname",
-                    "description"   => "Set hostname {hostname}",
-                    "function"      => "set",
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "set banner",
-                    "description"   => "Set banner {banner}",
-                    "function"      => "set",
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "set timeout",
-                    "description"   => "Set timeout {seconds}",
-                    "function"      => "set",
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "switch module",
-                    "description"   => "switch module {module_name}. Switch terminal module.",
-                    "function"      => "switch"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "",
-                    "description"   => "composer commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer add plugin",
-                    "description"   => "composer add plugin {plugin_package_name}. To add pre-installed plugin (via composer) into phpterminal.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer install plugin",
-                    "description"   => "composer install plugin {plugin_package_name}. To install plugin directly from composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer upgrade plugin",
-                    "description"   => "composer upgrade plugin {plugin_package_name}. To upgrade plugin directly from composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer remove plugin",
-                    "description"   => "composer remove plugin {plugin_package_name}. To remove plugin directly from composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "",
-                    "description"   => "",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer add module",
-                    "description"   => "composer add module {module_package_name}. To add pre-installed module (via composer) into phpterminal.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer install module",
-                    "description"   => "composer install module {module_package_name}. To install module directly from composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer upgrade module",
-                    "description"   => "composer upgrade module {module_package_name}. To upgrade module directly from composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer remove module",
-                    "description"   => "composer remove module {module_package_name}. To remove module directly from composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer resync",
-                    "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
-                    "function"      => "composerResync"
-                ]
-            ];
-
-        if (isset($this->terminal->config['plugins']['auth']['settings']['canResetPasswd']) &&
-            $this->terminal->config['plugins']['auth']['settings']['canResetPasswd'] === true
-        ) {
-            array_push($commands,
-                [
-                    "availableAt"   => "config",
-                    "command"       => "",
-                    "description"   => "Auth Plugin Commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "passwd",
-                    "description"   => "Set new password for current logged in user.",
-                    "function"      => "passwd"
-                ]
-            );
-        }
-
-        return $commands;
     }
 }

@@ -198,338 +198,6 @@ class Terminal extends Base
         $this->quit();
     }
 
-    protected function quit()
-    {
-        \cli\line('');
-        \cli\line('Bye!');
-        \cli\line('');
-
-        exit(0);
-    }
-
-    protected function processFilters(array $filters)
-    {
-        $this->filters['values'] = [];
-        $this->filters['keys'] = [];
-
-        foreach ($filters as $filter) {
-            if (str_contains($filter, 'grepkey')) {
-                if (trim(str_replace('grepkey', '', $filter)) !== '') {
-                    array_push($this->filters['keys'], trim(str_replace('grepkey', '', $filter)));
-                }
-            } else if (str_contains($filter, 'grep')) {
-                if (trim(str_replace('grep', '', $filter)) !== '') {
-                    array_push($this->filters['values'], trim(str_replace('grep', '', $filter)));
-                }
-            }
-        }
-
-        if (count($this->filters['values']) === 0 && count($this->filters['keys']) === 0) {
-            $this->filters = null;
-        }
-    }
-
-    protected function showHelp()
-    {
-        if (isset($this->helpList[$this->whereAt]) &&
-            count($this->helpList[$this->whereAt]) > 0
-        ) {
-            \cli\line('');
-
-            foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
-                \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
-                $table = new \cli\Table();
-                $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
-                foreach ($moduleCommands as &$moduleCommand) {
-                    if (strtolower($moduleCommand[0]) === '') {
-                        $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
-                        $moduleCommand[1] = '';
-                    }
-                }
-                $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([25, 125]));
-                $table->display();
-                \cli\line('%w');
-            }
-            foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
-                \cli\line("%yGLOBAL COMMANDS%w");
-                $table = new \cli\Table();
-                $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
-                foreach ($moduleCommands as &$moduleCommand) {
-                    if (strtolower($moduleCommand[0]) === '') {
-                        $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
-                        $moduleCommand[1] = '';
-                    }
-                }
-                $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([25, 125]));
-                $table->display();
-                \cli\line('%w');
-            }
-        }
-    }
-
-    protected function searchCommand($command)
-    {
-        if (isset($this->execCommandsList[$this->whereAt]) &&
-            count($this->execCommandsList[$this->whereAt]) > 0
-        ) {
-            foreach ($this->execCommandsList[$this->whereAt] as $commands) {
-                if (str_starts_with(strtolower($command), strtolower($commands['command']))) {
-                    try {
-                        return $this->execCommand($command, $commands);
-                    } catch (\Exception $e) {
-                        \cli\line("%r" . $e->getMessage() . "%w");
-
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    protected function execCommand($command, $commandArr)
-    {
-        $this->commandsData->reset();
-
-        if (!isset($commandArr['class'])) {
-            return false;
-        }
-
-        $class = new $commandArr['class'];
-
-        $response = $class->init($this, $command)->{$commandArr['function']}();
-
-        if ($response !== null) {
-            if (count($this->commandsData->getAllData()['commandsData']) === 0) {
-                return true;
-            }
-
-            if ($this->commandsData->responseCode == 0) {
-                $color = "%g";
-            } else {
-                $color = "%r";
-            }
-
-            \cli\line("");
-            if ($this->commandsData->responseMessage && $this->commandsData->responseMessage !== '') {
-                \cli\line($color . $this->commandsData->responseMessage);
-            }
-            \cli\out("%w");
-
-            if ($this->commandsData->responseData && count($this->commandsData->responseData) > 0) {
-                if ($this->commandsData->responseDataIsList) {
-                    $this->commandsData->responseData = array_values($this->commandsData->responseData);
-                    $responseHeaders = [];
-                    $responseDataRows = [];
-
-                    \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
-
-                    if ($this->filters) {
-                        if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
-                            $columnsKeys = [];
-
-                            foreach ($this->filters['keys'] as $keysKey => $keysValue) {
-                                $columnKey = array_search(strtolower($keysValue), $this->commandsData->showColumns);
-
-                                if ($columnKey !== false) {
-                                    if (!in_array($columnKey, $columnsKeys)) {
-                                        array_push($columnsKeys, $columnKey);
-                                    }
-                                }
-                            }
-
-                            if (count($columnsKeys) > 0) {
-                                $headers = [];
-                                foreach ($this->commandsData->showColumns as $showColumnKey => $showColumn) {
-                                    if (in_array($showColumnKey, $columnsKeys)) {
-                                        array_push($headers, $showColumn);
-                                    }
-                                }
-                                $this->commandsData->showColumns = $headers;
-
-                                $widths = [];
-                                foreach ($this->commandsData->columnsWidths as $columnWidthKey => $columnWidth) {
-                                    if (in_array($columnWidthKey, $columnsKeys)) {
-                                        array_push($widths, $columnWidth);
-                                    }
-                                }
-                                $this->commandsData->columnsWidths = $widths;
-                            }
-                        }
-                    }
-
-                    foreach ($this->commandsData->responseData as $responseKey => $responseValues) {
-                        $responseValues = array_values($responseValues);
-                        $responseData = true_flatten($responseValues);
-
-                        foreach ($responseData as $key => $value) {
-                            if ($value === null || $value === '') {
-                                $value = 'null';
-                            }
-
-                            //true_flatten add the parent key to key as [parentKey_key],
-                            //we remove that and use that to differentiate between different data.
-                            $key = explode(' > ', $key);
-
-                            $rowKey = (int) $key[0];
-                            $key = $key[1];
-
-                            if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
-                                array_push($responseHeaders, $key);
-                            }
-
-                            if (in_array($key, $this->commandsData->showColumns)) {
-                                if (!isset($responseDataRows[$rowKey])) {
-                                    $responseDataRows[$rowKey] = [];
-                                }
-
-                                if ($this->displayMode === 'table') {
-                                    array_push($responseDataRows[$rowKey], $value);
-                                } else if ($this->displayMode === 'list') {
-                                    $responseDataRows[$rowKey][$key] = $value;
-                                }
-                            }
-                        }
-                    }
-
-                    if ($this->filters) {
-                        if (isset($this->filters['values']) && count($this->filters['values']) > 0) {
-                            foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
-                                if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
-                                    foreach ($responseDataRow as $rDR) {
-                                        if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
-                                            continue 2;
-                                        }
-                                    }
-                                } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
-                                    foreach ($this->filters['values'] as $filterValue) {
-                                        foreach ($responseDataRow as $rDR) {
-                                            if (str_contains(strtolower($rDR), strtolower($filterValue))) {
-                                                continue 3;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                unset($responseDataRows[$responseDataRowsKey]);
-                            }
-
-                            $responseDataRows = array_values($responseDataRows);
-                        }
-                    }
-
-                    if (count($responseDataRows) > 0) {
-                        if ($this->displayMode === 'table') {//Draw Table here
-                            $table = new \cli\Table();
-
-                            array_walk($responseHeaders, function(&$header) {
-                                $header = strtoupper($header);
-                            });
-
-                            $table->setHeaders($responseHeaders);
-                            $table->setRows($responseDataRows);
-                            $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
-                            $table->display();
-                        } else {//Show list here
-                            foreach ($responseDataRows as $responseDataRow) {
-                                foreach ($responseDataRow as $key => $value) {
-                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                }
-                                \cli\line("");
-                            }
-                        }
-                    } else {
-                        if ($this->filters) {
-                            \cli\line("");
-                            \cli\line("%rNo data found with filter(s)%w");
-                        }
-                    }
-                } else {
-                    \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
-
-                    $responseData = true_flatten($this->commandsData->responseData);
-
-                    $filterFound = false;
-
-                    foreach ($responseData as $key => $value) {
-                        if ($value === null || $value === '') {
-                            $value = 'null';
-                        }
-
-                        if ($this->filters) {
-                            if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
-                                if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
-                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                    $filterFound = true;
-                                }
-                            } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
-                                foreach ($this->filters['keys'] as $filterKey) {
-                                    if (str_contains(strtolower($key), strtolower($filterKey))) {
-                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                        $filterFound = true;
-                                    }
-                                }
-                            }
-                            if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
-                                if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
-                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                    $filterFound = true;
-                                }
-                            } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
-                                foreach ($this->filters['values'] as $filterValue) {
-                                    if (str_contains(strtolower($value), strtolower($filterValue))) {
-                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                        $filterFound = true;
-                                    }
-                                }
-                            }
-                        } else {
-
-                            \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                        }
-                    }
-
-                    if ($this->filters && !$filterFound) {
-                        \cli\line("%rNo data found with filter(s)%w");
-                    }
-                }
-            }
-
-            \cli\line("");
-
-            return true;
-        }
-
-        return false;
-    }
-
-    protected function updateAutoComplete($do = false)
-    {
-        readline_completion_function(function($input, $index) {
-            if ($input !== '') {
-                $rl_info = readline_info();
-                $full_input = substr($rl_info['line_buffer'], 0, $rl_info['end']);
-
-                $matches = [];
-
-                if (isset($this->autoCompleteList[$this->whereAt])) {
-                    foreach ($this->autoCompleteList[$this->whereAt] as $list) {
-                        if (str_starts_with($list, $full_input)) {
-                            $matches[] = substr($list, $index);
-                        }
-                    }
-                }
-
-                return $matches;
-            }
-
-            return [];
-        });
-    }
-
     public function setActiveModule()
     {
         if (isset($this->config['active_module'])) {
@@ -781,5 +449,344 @@ class Terminal extends Base
                 ]
             ]
         ];
+    }
+
+    protected function quit()
+    {
+        \cli\line('');
+        \cli\line('Bye!');
+        \cli\line('');
+
+        exit(0);
+    }
+
+    protected function processFilters(array $filters)
+    {
+        $this->filters['values'] = [];
+        $this->filters['keys'] = [];
+
+        foreach ($filters as $filter) {
+            if (str_contains($filter, 'grepkey')) {
+                if (trim(str_replace('grepkey', '', $filter)) !== '') {
+                    array_push($this->filters['keys'], trim(str_replace('grepkey', '', $filter)));
+                }
+            } else if (str_contains($filter, 'grep')) {
+                if (trim(str_replace('grep', '', $filter)) !== '') {
+                    array_push($this->filters['values'], trim(str_replace('grep', '', $filter)));
+                }
+            }
+        }
+
+        if (count($this->filters['values']) === 0 && count($this->filters['keys']) === 0) {
+            $this->filters = null;
+        }
+    }
+
+    protected function showHelp()
+    {
+        if (isset($this->helpList[$this->whereAt]) &&
+            count($this->helpList[$this->whereAt]) > 0
+        ) {
+            \cli\line('');
+
+            foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
+                \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
+                $table = new \cli\Table();
+                $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
+                foreach ($moduleCommands as &$moduleCommand) {
+                    if (strtolower($moduleCommand[0]) === '') {
+                        $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[1] = '';
+                    }
+                }
+                $table->setRows($moduleCommands);
+                $table->setRenderer(new \cli\table\Ascii([25, 125]));
+                $table->display();
+                \cli\line('%w');
+            }
+            foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
+                \cli\line("%yGLOBAL COMMANDS%w");
+                $table = new \cli\Table();
+                $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
+                foreach ($moduleCommands as &$moduleCommand) {
+                    if (strtolower($moduleCommand[0]) === '') {
+                        $moduleCommand[0] = '%c' . strtoupper($moduleCommand[1]) . '%w';
+                        $moduleCommand[1] = '';
+                    }
+                }
+                $table->setRows($moduleCommands);
+                $table->setRenderer(new \cli\table\Ascii([25, 125]));
+                $table->display();
+                \cli\line('%w');
+            }
+        }
+    }
+
+    protected function searchCommand($command)
+    {
+        if (isset($this->execCommandsList[$this->whereAt]) &&
+            count($this->execCommandsList[$this->whereAt]) > 0
+        ) {
+            foreach ($this->execCommandsList[$this->whereAt] as $commands) {
+                if (str_starts_with(strtolower($command), strtolower($commands['command']))) {
+                    try {
+                        return $this->execCommand($command, $commands);
+                    } catch (\Exception $e) {
+                        \cli\line("%r" . $e->getMessage() . "%w");
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    protected function execCommand($command, $commandArr)
+    {
+        $this->commandsData->reset();
+
+        if (!isset($commandArr['class'])) {
+            return false;
+        }
+
+        $class = new $commandArr['class'];
+
+        $response = $class->init($this, $command)->{$commandArr['function']}();
+
+        if ($response !== null) {
+            if (count($this->commandsData->getAllData()['commandsData']) === 0) {
+                return true;
+            }
+
+            $color = "%w";
+            if ($this->commandsData->responseCode == 0) {
+                $color = "%g";
+            } else if ($this->commandsData->responseCode == 1) {
+                $color = "%r";
+            } else if ($this->commandsData->responseCode == 2) {
+                $color = "%y";
+            } else if ($this->commandsData->responseCode == 3) {
+                $color = "%m";
+            } else if ($this->commandsData->responseCode == 4) {
+                $color = "%c";
+            }
+
+            \cli\line("");
+            if ($this->commandsData->responseMessage && $this->commandsData->responseMessage !== '') {
+                \cli\line($color . $this->commandsData->responseMessage);
+            }
+            \cli\out("%w");
+
+            if ($this->commandsData->responseData && count($this->commandsData->responseData) > 0) {
+                if ($this->commandsData->responseDataIsList) {
+                    $this->commandsData->responseData = array_values($this->commandsData->responseData);
+                    $responseHeaders = [];
+                    $responseDataRows = [];
+
+                    \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
+
+                    if ($this->filters) {
+                        if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
+                            $columnsKeys = [];
+
+                            foreach ($this->filters['keys'] as $keysKey => $keysValue) {
+                                $columnKey = array_search(strtolower($keysValue), $this->commandsData->showColumns);
+
+                                if ($columnKey !== false) {
+                                    if (!in_array($columnKey, $columnsKeys)) {
+                                        array_push($columnsKeys, $columnKey);
+                                    }
+                                }
+                            }
+
+                            if (count($columnsKeys) > 0) {
+                                $headers = [];
+                                foreach ($this->commandsData->showColumns as $showColumnKey => $showColumn) {
+                                    if (in_array($showColumnKey, $columnsKeys)) {
+                                        array_push($headers, $showColumn);
+                                    }
+                                }
+                                $this->commandsData->showColumns = $headers;
+
+                                $widths = [];
+                                foreach ($this->commandsData->columnsWidths as $columnWidthKey => $columnWidth) {
+                                    if (in_array($columnWidthKey, $columnsKeys)) {
+                                        array_push($widths, $columnWidth);
+                                    }
+                                }
+                                $this->commandsData->columnsWidths = $widths;
+                            }
+                        }
+                    }
+
+                    foreach ($this->commandsData->responseData as $responseKey => $responseValues) {
+                        $responseValues = array_values($responseValues);
+                        $responseData = true_flatten($responseValues);
+
+                        foreach ($responseData as $key => $value) {
+                            if ($value === null || $value === '') {
+                                $value = 'null';
+                            }
+
+                            //true_flatten add the parent key to key as [parentKey_key],
+                            //we remove that and use that to differentiate between different data.
+                            $key = explode(' > ', $key);
+
+                            $rowKey = (int) $key[0];
+                            $key = $key[1];
+
+                            if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
+                                array_push($responseHeaders, $key);
+                            }
+
+                            if (in_array($key, $this->commandsData->showColumns)) {
+                                if (!isset($responseDataRows[$rowKey])) {
+                                    $responseDataRows[$rowKey] = [];
+                                }
+
+                                if ($this->displayMode === 'table') {
+                                    array_push($responseDataRows[$rowKey], $value);
+                                } else if ($this->displayMode === 'list') {
+                                    $responseDataRows[$rowKey][$key] = $value;
+                                }
+                            }
+                        }
+                    }
+
+                    if ($this->filters) {
+                        if (isset($this->filters['values']) && count($this->filters['values']) > 0) {
+                            foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
+                                if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
+                                    foreach ($responseDataRow as $rDR) {
+                                        if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
+                                            continue 2;
+                                        }
+                                    }
+                                } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                    foreach ($this->filters['values'] as $filterValue) {
+                                        foreach ($responseDataRow as $rDR) {
+                                            if (str_contains(strtolower($rDR), strtolower($filterValue))) {
+                                                continue 3;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                unset($responseDataRows[$responseDataRowsKey]);
+                            }
+
+                            $responseDataRows = array_values($responseDataRows);
+                        }
+                    }
+
+                    if (count($responseDataRows) > 0) {
+                        if ($this->displayMode === 'table') {//Draw Table here
+                            $table = new \cli\Table();
+
+                            array_walk($responseHeaders, function(&$header) {
+                                $header = strtoupper($header);
+                            });
+
+                            $table->setHeaders($responseHeaders);
+                            $table->setRows($responseDataRows);
+                            $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
+                            $table->display();
+                        } else {//Show list here
+                            foreach ($responseDataRows as $responseDataRow) {
+                                foreach ($responseDataRow as $key => $value) {
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                }
+                                \cli\line("");
+                            }
+                        }
+                    } else {
+                        if ($this->filters) {
+                            \cli\line("");
+                            \cli\line("%rNo data found with filter(s)%w");
+                        }
+                    }
+                } else {
+                    \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
+
+                    $responseData = true_flatten($this->commandsData->responseData);
+
+                    $filterFound = false;
+
+                    foreach ($responseData as $key => $value) {
+                        if ($value === null || $value === '') {
+                            $value = 'null';
+                        }
+
+                        if ($this->filters) {
+                            if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
+                                if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                    $filterFound = true;
+                                }
+                            } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
+                                foreach ($this->filters['keys'] as $filterKey) {
+                                    if (str_contains(strtolower($key), strtolower($filterKey))) {
+                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                        $filterFound = true;
+                                    }
+                                }
+                            }
+                            if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
+                                if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                    $filterFound = true;
+                                }
+                            } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                foreach ($this->filters['values'] as $filterValue) {
+                                    if (str_contains(strtolower($value), strtolower($filterValue))) {
+                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                        $filterFound = true;
+                                    }
+                                }
+                            }
+                        } else {
+
+                            \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                        }
+                    }
+
+                    if ($this->filters && !$filterFound) {
+                        \cli\line("%rNo data found with filter(s)%w");
+                    }
+                }
+            }
+
+            \cli\line("");
+
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function updateAutoComplete($do = false)
+    {
+        readline_completion_function(function($input, $index) {
+            if ($input !== '') {
+                $rl_info = readline_info();
+                $full_input = substr($rl_info['line_buffer'], 0, $rl_info['end']);
+
+                $matches = [];
+
+                if (isset($this->autoCompleteList[$this->whereAt])) {
+                    foreach ($this->autoCompleteList[$this->whereAt] as $list) {
+                        if (str_starts_with($list, $full_input)) {
+                            $matches[] = substr($list, $index);
+                        }
+                    }
+                }
+
+                return $matches;
+            }
+
+            return [];
+        });
     }
 }
