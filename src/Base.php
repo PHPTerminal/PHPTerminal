@@ -85,7 +85,6 @@ abstract class Base
                 [
                     '_id'           => 1,
                     'hostname'      => 'phpterminal',
-                    'banner'        => 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help.' . PHP_EOL,
                     'active_module' => 'base',
                     'modules'       => [
                         'base'      => [
@@ -93,7 +92,8 @@ abstract class Base
                             'package_name'  => 'phpterminal/phpterminal',
                             'description'   => 'PHP Terminal Base Module',
                             'location'      => __DIR__ . '/BaseModules/',
-                            'version'       => 'viaGit'
+                            'version'       => 'viaGit',
+                            'banner'        => 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help.' . PHP_EOL,
                         ]
                     ],
                     'plugins'       => []
@@ -116,6 +116,7 @@ abstract class Base
             $this->config['modules']['base']['description'] = 'PHP Terminal Base Module';
             $this->config['modules']['base']['location'] = __DIR__ . '/BaseModules/';
             $this->config['modules']['base']['version'] = 'viaGit';
+            $this->config['modules']['base']['banner'] = 'Welcome to PHP Terminal!' . PHP_EOL . 'Type help or ? (question mark) for help.' . PHP_EOL;
 
             if ($this->viaComposer) {
                 $config = (new ConfigTerminal())->init($this, null);

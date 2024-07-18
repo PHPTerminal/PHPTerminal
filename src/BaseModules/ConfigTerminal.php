@@ -287,11 +287,42 @@ class ConfigTerminal extends Modules
             return false;
         }
 
-        $this->terminal->updateConfig(['hostname' => $args[0]]);
+        $this->terminal->config['hostname'] = $args[0];
+
+        $this->terminal->updateConfig($this->terminal->config);
 
         $this->terminal->setHostname();
 
         return true;
+    }
+
+    protected function setBanner(array $args)
+    {
+        \cli\line("");
+        \cli\line('%yEnter new banner for module : ' . $this->terminal->config['active_module'] . '%w');
+        \cli\line("");
+
+        $banner = $this->terminal->inputToArray(['banner']);
+
+        if ($banner && isset($banner['banner'])) {
+            if (strlen($banner['banner']) > 1024 || strlen($banner['banner']) < 1) {
+                $this->terminal->addResponse('Please provide valid banner. Banner can not be less than 1 character or greater than 1024 characters', 1);
+
+                return false;
+            }
+
+            $this->terminal->config['modules'][$this->terminal->config['active_module']]['banner'] = $banner['banner'];
+
+            $this->terminal->updateConfig($this->terminal->config);
+
+            $this->terminal->setBanner();
+
+            return true;
+        }
+
+        $this->terminal->addResponse('Please provide valid banner', 1);
+
+        return false;
     }
 
     protected function switchModule($args)

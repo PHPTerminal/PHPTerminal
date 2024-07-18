@@ -220,10 +220,10 @@ class Terminal extends Base
 
                 $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%w";
             } else {
-                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
+                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['modules']['base']['banner']) . "%w";
             }
         } else {
-            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['banner']) . "%w";
+            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['modules']['base']['banner']) . "%w";
         }
     }
 
