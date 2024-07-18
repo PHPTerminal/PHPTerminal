@@ -123,21 +123,53 @@ class ConfigTerminal extends Modules
                 ]
             ];
 
-        if (isset($this->terminal->config['plugins']['auth']['settings']['canResetPasswd']) &&
-            $this->terminal->config['plugins']['auth']['settings']['canResetPasswd'] === true
-        ) {
+        if (isset($this->terminal->config['plugins']['auth'])) {
             array_push($commands,
                 [
                     "availableAt"   => "config",
                     "command"       => "",
                     "description"   => "Auth Plugin Commands",
                     "function"      => ""
-                ],
+                ]
+            );
+
+            if (isset($this->terminal->config['plugins']['auth']['settings']['canResetPasswd']) &&
+                $this->terminal->config['plugins']['auth']['settings']['canResetPasswd'] === true
+            ) {
+                array_push($commands,
+                    [
+                        "availableAt"   => "config",
+                        "command"       => "",
+                        "description"   => "Auth Plugin Commands",
+                        "function"      => ""
+                    ]
+                );
+            }
+
+            array_push($commands,
                 [
                     "availableAt"   => "config",
                     "command"       => "passwd",
                     "description"   => "Set new password for current logged in user.",
                     "function"      => "passwd"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "account add",
+                    "description"   => "Add new user account.",
+                    "function"      => "account"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "account update",
+                    "description"   => "account update {user_name}. Update user account.",
+                    "function"      => "account"
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "account remove",
+                    "description"   => "account remove {user_name}.",
+                    "function"      => "account"
                 ]
             );
         }
@@ -292,6 +324,105 @@ class ConfigTerminal extends Modules
         $this->terminal->updateConfig($this->terminal->config);
 
         $this->terminal->setHostname();
+
+        return true;
+    }
+
+    protected function accountAdd()
+    {
+        \cli\line("");
+        \cli\line('%yEnter new user account details...%w');
+        \cli\line("");
+
+        $user = $this->terminal->inputToArray(
+            ['username', 'password__secret', 'full_name', 'email', 'permissions_enable', 'permissions_config']
+        );
+
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        if ($auth->addAccount($user)) {
+            $this->terminal->addResponse('New user account ' . $user['username'] . ' added successfully.');
+
+            return true;
+        }
+
+        $this->terminal->addResponse('Error: Could not add user!', 1);
+
+        return true;
+    }
+
+    protected function accountUpdate(array $args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide valid username', 1);
+
+            return false;
+        }
+
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        $account = $auth->getAccountByUsername($args[0]);
+
+        if ($account) {
+            \cli\line("");
+            \cli\line('%yUpdate user account details...%w');
+            \cli\line("");
+
+            $user = $this->terminal->inputToArray(
+                ['full_name', 'email', 'permissions_enable', 'permissions_config'],
+                [
+                    'full_name' => $account['profile']['full_name'],
+                    'email' => $account['profile']['email'],
+                    'permissions_enable' => $account['permissions']['enable'] == 1 ? 'true' : 'false',
+                    'permissions_config' => $account['permissions']['config'] == 1 ? 'true' : 'false'
+                ]
+            );
+
+            $user['username'] = $account['username'];
+
+            if ($auth->updateAccount($user)) {
+                $this->terminal->addResponse('User account ' . $account['username'] . ' updated successfully.');
+
+                return true;
+            } else {
+                $this->terminal->addResponse('Error updating user!', 1);
+            }
+        } else {
+            $this->terminal->addResponse('Account not found!', 1);
+        }
+
+        return true;
+    }
+
+    protected function accountRemove(array $args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide valid username', 1);
+
+            return false;
+        }
+
+        if ($args[0] === $this->terminal->getAccount()['username']) {
+            $this->terminal->addResponse('Cannot remove your own account!', 1);
+
+            return false;
+        }
+
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        $account = $auth->getAccountByUsername($args[0]);
+
+        if ($account) {
+            if ($auth->removeAccount($account['id'])) {
+                $this->terminal->addResponse('User account removed successfully');
+
+                return true;
+            } else {
+                $this->terminal->addResponse('Error removing user account ' . $args[0], 1);
+            }
+        } else {
+            $this->terminal->addResponse('Account with username ' . $args[0] . ' not found', 1);
+        }
 
         return true;
     }
