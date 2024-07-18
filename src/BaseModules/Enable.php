@@ -259,6 +259,7 @@ class Enable extends Modules
                                 \cli\line('%yNOTE: Package phpterminal/phpterminal should be upgraded via composer and not this application.%w');
                                 \cli\line('%yTrying to upgrade phpterminal/phpterminal package via this application will fail and cause errors.%w');
                                 \cli\line('%yUpgrade package via composer and then run, composer resync via config mode to sync the updated package.%w');
+                                \cli\line('%yIf you have installed phpterminal/phpterminal via git then run, git pull.%w');
                             }
 
                             \cli\line("");
