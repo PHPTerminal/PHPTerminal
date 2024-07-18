@@ -391,6 +391,17 @@ class ConfigTerminal extends Modules
             return false;
         }
 
+        if (strtolower($args[0]) === 'phpterminal/phpterminal') {
+            \cli\line("");
+            \cli\line('%yNOTE: Package phpterminal/phpterminal should be upgraded via composer and not this application.%w');
+            \cli\line('%yTrying to upgrade phpterminal/phpterminal package via this application will fail and cause errors.%w');
+            \cli\line('%yUpgrade package via composer and then run, composer resync via config mode to sync the updated package.%w');
+            \cli\line('%yIf you have installed phpterminal/phpterminal via git then run, git pull.%w');
+            \cli\line("");
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bInstalling $type...%w");
         \cli\line("");
@@ -412,6 +423,17 @@ class ConfigTerminal extends Modules
     {
         if (!isset($args[0])) {
             $this->terminal->addResponse('Please provide '. $type .' name to remove', 1);
+
+            return false;
+        }
+
+        if (strtolower($args[0]) === 'phpterminal/phpterminal') {
+            \cli\line("");
+            \cli\line('%yNOTE: Package phpterminal/phpterminal should be upgraded via composer and not this application.%w');
+            \cli\line('%yTrying to upgrade phpterminal/phpterminal package via this application will fail and cause errors.%w');
+            \cli\line('%yUpgrade package via composer and then run, composer resync via config mode to sync the updated package.%w');
+            \cli\line('%yIf you have installed phpterminal/phpterminal via git then run, git pull.%w');
+            \cli\line("");
 
             return false;
         }
