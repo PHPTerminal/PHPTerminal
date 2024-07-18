@@ -21,11 +21,6 @@ class ConfigTerminal extends Modules
         return $this;
     }
 
-    public function run($args = [])
-    {
-        //
-    }
-
     public function getCommands(): array
     {
         $commands =

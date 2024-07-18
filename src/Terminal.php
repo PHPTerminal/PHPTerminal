@@ -560,10 +560,17 @@ class Terminal extends Base
                 return true;
             }
 
+            $color = "%w";
             if ($this->commandsData->responseCode == 0) {
                 $color = "%g";
-            } else {
+            } else if ($this->commandsData->responseCode == 1) {
                 $color = "%r";
+            } else if ($this->commandsData->responseCode == 2) {
+                $color = "%y";
+            } else if ($this->commandsData->responseCode == 3) {
+                $color = "%m";
+            } else if ($this->commandsData->responseCode == 4) {
+                $color = "%c";
             }
 
             \cli\line("");
