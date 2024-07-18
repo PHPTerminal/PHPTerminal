@@ -235,6 +235,7 @@ class Terminal extends Base
             count($this->helpList[$this->whereAt]) > 0
         ) {
             \cli\line('');
+
             foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
                 \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
                 $table = new \cli\Table();
@@ -265,7 +266,6 @@ class Terminal extends Base
                 $table->display();
                 \cli\line('%w');
             }
-
         }
     }
 
@@ -321,16 +321,13 @@ class Terminal extends Base
 
             if ($this->commandsData->responseData && count($this->commandsData->responseData) > 0) {
                 if ($this->commandsData->responseDataIsList) {
-                    if ($this->displayMode === 'table') {
-                        $responseHeaders = [];
-                        $responseDataRows = [];
-                    }
+                    $this->commandsData->responseData = array_values($this->commandsData->responseData);
+                    $responseHeaders = [];
+                    $responseDataRows = [];
 
                     \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
 
-                    $filterFound = false;
-
-                    if ($this->filters && $this->displayMode === 'table') {
+                    if ($this->filters) {
                         if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
                             $columnsKeys = [];
 
@@ -360,8 +357,6 @@ class Terminal extends Base
                                     }
                                 }
                                 $this->commandsData->columnsWidths = $widths;
-
-                                $filterFound = true;
                             }
                         }
                     }
@@ -370,135 +365,64 @@ class Terminal extends Base
                         $responseValues = array_values($responseValues);
                         $responseData = true_flatten($responseValues);
 
-                        $initialKey = 0;
-
-                        $filterDataFoundForList = false;
-
                         foreach ($responseData as $key => $value) {
                             if ($value === null || $value === '') {
                                 $value = 'null';
                             }
 
-                            //true_flatten add the parent key to key as [parentKey_key], we remove that and use that to differentiate between different data.
+                            //true_flatten add the parent key to key as [parentKey_key],
+                            //we remove that and use that to differentiate between different data.
                             $key = explode(' > ', $key);
 
-                            if ($this->displayMode === 'table') {
-                                $rowKey = (int) $key[0];
+                            $rowKey = (int) $key[0];
+                            $key = $key[1];
+
+                            if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
+                                array_push($responseHeaders, $key);
                             }
 
-                            if ((int) $key[0] !== $initialKey) {
-                                $initialKey = (int) $key[0];
-
-                                if ($this->displayMode === 'list') {
-                                    if ($this->filters) {
-                                        if ($filterDataFoundForList) {
-                                            \cli\line("");
-                                            $filterDataFoundForList = false;
-                                        }
-                                    } else {
-                                        \cli\line("");
-                                    }
-                                }
-                            }
-
-                            array_shift($key);
-                            $key = join(' > ', $key);
-
-                            if ($this->displayMode === 'table') {
-                                if (!in_array($key, $responseHeaders) && in_array($key, $this->commandsData->showColumns)) {
-                                    array_push($responseHeaders, $key);
+                            if (in_array($key, $this->commandsData->showColumns)) {
+                                if (!isset($responseDataRows[$rowKey])) {
+                                    $responseDataRows[$rowKey] = [];
                                 }
 
-                                if (in_array($key, $this->commandsData->showColumns)) {
-                                    if (!isset($responseDataRows[$rowKey])) {
-                                        $responseDataRows[$rowKey] = [];
-                                    }
+                                if ($this->displayMode === 'table') {
                                     array_push($responseDataRows[$rowKey], $value);
-                                }
-                            } else {
-                                if ($this->filters) {
-                                    if (isset($this->filters['keys']) && count($this->filters['keys']) === 1) {
-                                        if (str_contains(strtolower($key), strtolower($this->filters['keys'][0]))) {
-                                            $filterFound = true;
-                                            $filterDataFoundForList = true;
-
-                                            \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                        }
-                                    } else if (isset($this->filters['keys']) && count($this->filters['keys']) > 1) {
-                                        foreach ($this->filters['keys'] as $filterKey) {
-                                            if (str_contains(strtolower($key), strtolower($filterKey))) {
-                                                $filterFound = true;
-                                                $filterDataFoundForList = true;
-
-                                                \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                            }
-                                        }
-                                    }
-                                    if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
-                                        if (str_contains(strtolower($value), strtolower($this->filters['values'][0]))) {
-                                            $filterFound = true;
-                                            $filterDataFoundForList = true;
-
-                                            if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
-                                                if (!in_array($key, $this->filters['keys'])) {
-                                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                                }
-                                            } else {
-                                                \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                            }
-                                        }
-                                    } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
-                                        foreach ($this->filters['values'] as $filterValue) {
-                                            if (str_contains(strtolower($value), strtolower($filterValue))) {
-                                                $filterFound = true;
-                                                $filterDataFoundForList = true;
-
-                                                if (isset($this->filters['keys']) && count($this->filters['keys']) > 0) {
-                                                    if (!in_array($key, $this->filters['keys'])) {
-                                                        \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                                    }
-                                                } else {
-                                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                } else if ($this->displayMode === 'list') {
+                                    $responseDataRows[$rowKey][$key] = $value;
                                 }
                             }
                         }
                     }
 
-                    if ($this->displayMode === 'table') {//Draw Table here
-                        if ($this->filters) {
-                            if (isset($this->filters['values']) && count($this->filters['values']) > 0) {
-                                foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
-                                    if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
-                                        foreach ($responseDataRow as $rDR) {
-                                            if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
-                                                $filterFound = true;
-                                                continue 2;
-                                            }
+                    if ($this->filters) {
+                        if (isset($this->filters['values']) && count($this->filters['values']) > 0) {
+                            foreach ($responseDataRows as $responseDataRowsKey => $responseDataRow) {
+                                if (isset($this->filters['values']) && count($this->filters['values']) === 1) {
+                                    foreach ($responseDataRow as $rDR) {
+                                        if (str_contains(strtolower($rDR), strtolower($this->filters['values'][0]))) {
+                                            continue 2;
                                         }
-                                    } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
-                                        foreach ($this->filters['values'] as $filterValue) {
-                                            foreach ($responseDataRow as $rDR) {
-                                                if (str_contains(strtolower($rDR), strtolower($filterValue))) {
-                                                    $filterFound = true;
-                                                    continue 3;
-                                                }
+                                    }
+                                } else if (isset($this->filters['values']) && count($this->filters['values']) > 1) {
+                                    foreach ($this->filters['values'] as $filterValue) {
+                                        foreach ($responseDataRow as $rDR) {
+                                            if (str_contains(strtolower($rDR), strtolower($filterValue))) {
+                                                continue 3;
                                             }
                                         }
                                     }
-
-                                    unset($responseDataRows[$responseDataRowsKey]);
                                 }
-                                $responseDataRows = array_values($responseDataRows);
-                            }
-                        }
 
-                        if (count($responseDataRows) > 0) {
+                                unset($responseDataRows[$responseDataRowsKey]);
+                            }
+
+                            $responseDataRows = array_values($responseDataRows);
+                        }
+                    }
+
+                    if (count($responseDataRows) > 0) {
+                        if ($this->displayMode === 'table') {//Draw Table here
                             $table = new \cli\Table();
 
                             array_walk($responseHeaders, function(&$header) {
@@ -509,11 +433,19 @@ class Terminal extends Base
                             $table->setRows($responseDataRows);
                             $table->setRenderer(new \cli\table\Ascii($this->commandsData->columnsWidths));
                             $table->display();
+                        } else {//Show list here
+                            foreach ($responseDataRows as $responseDataRow) {
+                                foreach ($responseDataRow as $key => $value) {
+                                    \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
+                                }
+                                \cli\line("");
+                            }
                         }
-                    }
-
-                    if ($this->filters && !$filterFound) {
-                        \cli\line("%rNo data found with filter(s)%w");
+                    } else {
+                        if ($this->filters) {
+                            \cli\line("");
+                            \cli\line("%rNo data found with filter(s)%w");
+                        }
                     }
                 } else {
                     \cli\line("%y" . trim(strtoupper($command)) . " OUTPUT%w");
@@ -703,10 +635,10 @@ class Terminal extends Base
             $this->setLocalContent(false, $module['location']);
 
             $modulesFiles =
-                $this->localContent->listContents('.', true)
-                ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
-                ->map(fn (StorageAttributes $attributes) => $attributes->path())
-                ->toArray();
+            $this->localContent->listContents('.', true)
+            ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
+            ->map(fn (StorageAttributes $attributes) => $attributes->path())
+            ->toArray();
 
             if (count($modulesFiles) > 0) {
                 foreach ($modulesFiles as $moduleFile) {
@@ -834,20 +766,20 @@ class Terminal extends Base
     protected function getGlobalCommands()
     {
         return
-            [
-                'global' => [
-                    'base'  => [
-                        [
-                            "clear", "Clear screen"
-                        ],
-                        [
-                            "exit", "Change to previous mode or quit terminal if in disable mode"
-                        ],
-                        [
-                            "quit", "Quit Terminal"
-                        ]
+        [
+            'global' => [
+                'base'  => [
+                    [
+                        "clear", "Clear screen"
+                    ],
+                    [
+                        "exit", "Change to previous mode or quit terminal if in disable mode"
+                    ],
+                    [
+                        "quit", "Quit Terminal"
                     ]
                 ]
-            ];
+            ]
+        ];
     }
 }
