@@ -19,19 +19,19 @@ abstract class Base
 
     public $remoteWebContent;
 
-    protected $progress;
-
-    protected $settings = [];
-
     public $databaseDirectory;
 
     public $storeConfiguration;
 
-    protected $configStore;
-
     public $config;
 
     public $viaComposer = false;
+
+    protected $progress;
+
+    protected $settings = [];
+
+    protected $configStore;
 
     protected $dataPath;
 
@@ -127,11 +127,6 @@ abstract class Base
         }
     }
 
-    public function getConfig()
-    {
-        return $this->config;
-    }
-
     public function updateConfig($config)
     {
         $this->config = array_replace($this->config, $config);
@@ -190,7 +185,7 @@ abstract class Base
         $this->commandsData->columnsWidths = $columnsWidths;
     }
 
-    protected function newProgress($endCounter, $processType = 'Downloading...')
+    public function newProgress($endCounter, $processType = 'Downloading...')
     {
         $this->progress = new Bar($processType, $endCounter);
 
@@ -202,7 +197,7 @@ abstract class Base
         $this->progress->tick(1, $message);
     }
 
-    protected function finishProgress()
+    public function finishProgress()
     {
         $this->progress->finish();
     }
