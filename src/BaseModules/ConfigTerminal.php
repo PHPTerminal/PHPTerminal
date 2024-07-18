@@ -40,7 +40,7 @@ class ConfigTerminal extends Modules
                 [
                     "availableAt"   => "config",
                     "command"       => "set banner",
-                    "description"   => "Set banner {banner}",
+                    "description"   => "Set banner. Enter new banner for the active module.",
                     "function"      => "set",
                 ],
                 [
@@ -338,8 +338,12 @@ class ConfigTerminal extends Modules
         if (isset($this->terminal->config['modules'][$module])) {
             $this->terminal->updateConfig(['active_module' => $module]);
             $this->terminal->setActiveModule($module);
-            $this->terminal->setHostname();
             $this->terminal->getAllCommands();
+            $this->terminal->setHostname();
+            $this->terminal->setBanner();
+            \cli\line("");
+            \cli\line($this->terminal->getBanner());
+            \cli\line("");
         } else {
             $this->terminal->addResponse('Unknwon module: ' . $module . '. Run show available modules from enable mode to see all available modules', 1);
 

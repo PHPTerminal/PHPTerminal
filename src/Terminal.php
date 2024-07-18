@@ -62,7 +62,9 @@ class Terminal extends Base
 
         system('clear');
 
+        \cli\line("");
         \cli\line($this->banner);
+        \cli\line("");
 
         return $this;
     }
@@ -225,6 +227,11 @@ class Terminal extends Base
         } else {
             $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['modules']['base']['banner']) . "%w";
         }
+    }
+
+    public function getBanner()
+    {
+        return $this->banner;
     }
 
     public function setWhereAt($whereAt)
