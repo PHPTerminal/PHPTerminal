@@ -64,7 +64,7 @@ class Disable extends Modules
         while (true) {
             $input = stream_get_contents(STDIN, 1);
 
-            if (ord($input) == 10) {
+            if (ord($input) == 10 || ord($input) == 13) {
                 if (!$initial) {
                     \cli\line("%r%w");
                 }
