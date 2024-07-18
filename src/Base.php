@@ -190,59 +190,23 @@ abstract class Base
         $this->commandsData->columnsWidths = $columnsWidths;
     }
 
-    // protected function newProgress($processType = 'Downloading...')
-    // {
-    //     $this->progress =
-    //         new Bar($processType,
-    //                 ((bool) $this->settings['--resume'] && $this->resumeFrom > 0) ?
-    //                 ($this->hashRangesEnd - $this->resumeFrom) :
-    //                 $this->hashRangesEnd
-    //         );
+    protected function newProgress($endCounter, $processType = 'Downloading...')
+    {
+        $this->progress = new Bar($processType, $endCounter);
 
-    //     $this->progress->display();
-    // }
+        $this->progress->display();
+    }
 
-    // public function updateProgress($message)
-    // {
-    //     $this->progress->tick(1, $message);
-    // }
+    public function updateProgress($message)
+    {
+        $this->progress->tick(1, $message);
+    }
 
-    // protected function finishProgress()
-    // {
-    //     $this->progress->finish();
-    // }
+    protected function finishProgress()
+    {
+        $this->progress->finish();
+    }
 
-    // protected function writeToFile($file, $hash)
-    // {
-    //     try {
-    //         $separator = ',';
-
-    //         if (isset($this->settings['--type']) &&
-    //             ($file === $this->settings['--type'] . 'checkfile.txt' || $file === $this->settings['--type'] . 'pool.txt')
-    //         ) {
-    //             if ($file === $this->settings['--type'] . 'pool.txt') {
-    //                 $separator = PHP_EOL;
-    //             }
-
-    //             $fileLocation = $file;
-    //         } else {
-    //             $fileLocation = 'logs/' . $this->now . '/' . $file;
-    //         }
-
-    //         if ($this->localContent->fileExists($fileLocation)) {
-    //             @file_put_contents(__DIR__ . '/../data/' . $fileLocation, $hash . $separator, FILE_APPEND | LOCK_EX);
-    //         } else {
-    //             $this->localContent->write($fileLocation, $hash . $separator);
-    //         }
-
-    //         return true;
-    //     } catch (UnableToCheckExistence | UnableToWriteFile | FilesystemException $e) {
-    //         \cli\line('%r' . $e->getMessage() . '%w');
-
-    //         exit;
-    //     }
-    // }
-    //
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {
