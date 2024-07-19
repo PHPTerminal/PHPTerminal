@@ -24,6 +24,15 @@ RUN mkdir /home/admin/terminaldata
 
 RUN apk add --update --no-cache openssh
 RUN echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config
+RUN echo 'Port 2233' >> /etc/ssh/sshd_config
 ENTRYPOINT ["/entrypoint.sh"]
 COPY entrypoint.sh /
 RUN chown -R admin:admin /home/admin/
+
+# Running
+# docker run -d --name phpterminal -h phpterminal oyeaussie/phpterminal
+# Grab IP
+# docker exec phpterminal cat /etc/hosts | grep phpterminal
+# {container IP}    phpterminal
+# Connect via ssh
+# ssh -l admin -p 2233 {container IP}
