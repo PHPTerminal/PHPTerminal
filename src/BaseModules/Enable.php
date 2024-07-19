@@ -78,6 +78,12 @@ class Enable extends Modules
                 [
                     "availableAt"   => "enable",
                     "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
                     "description"   => "show commands",
                     "function"      => ""
                 ],
@@ -89,15 +95,15 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "show installed modules",
-                    "description"   => "Show all installed modules.",
+                    "command"       => "show installed",
+                    "description"   => "show installed {plugins/modules}. Show a list of all installed plugins/modules.",
                     "function"      => "show"
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "show installed plugins",
-                    "description"   => "Show all installed plugins.",
-                    "function"      => "show"
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
                 ],
                 [
                     "availableAt"   => "enable",
@@ -107,14 +113,8 @@ class Enable extends Modules
                 ],
                 [
                     "availableAt"   => "enable",
-                    "command"       => "composer search plugins",
-                    "description"   => "Search plugins via composer.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "composer search modules",
-                    "description"   => "Search modules via composer.",
+                    "command"       => "composer search",
+                    "description"   => "composer search {plugins/modules}. Search for plugins/modules in packagist.org repository.",
                     "function"      => "composer"
                 ],
                 [
@@ -127,6 +127,12 @@ class Enable extends Modules
 
         if (isset($this->terminal->config['plugins']['auth'])) {
             array_push($commands,
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
+                ],
                 [
                     "availableAt"   => "enable",
                     "command"       => "",
@@ -184,77 +190,101 @@ class Enable extends Modules
         return true;
     }
 
-    protected function showInstalledModules()
+    protected function showInstalled(array $args)
     {
-        $this->terminal->addResponse(
-            '',
-            0,
-            ['Installed Modules' => $this->terminal->config['modules'] ?? []],
-            true,
-            [
-                'name', 'package_name', 'version', 'location', 'description'
-            ],
-            [
-                10,50,50,40,15
-            ]
-        );
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide needs to be checked, plugins or modules.', 1);
 
-        return true;
-    }
+            return false;
+        }
 
-    protected function showInstalledPlugins()
-    {
-        if (!isset($this->terminal->config['plugins']) ||
-            (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) === 0)
-        ) {
-            \cli\line("");
-            \cli\line("%yNo plugins available. Search plugins via composer in enable mode.%w");
-            \cli\line("Run command : composer search plugins");
-            \cli\line("");
-            \cli\line("%yTo install new plugins via composer in config mode.%w");
-            \cli\line("Run command : composer install plugin {plugin_name}");
-            \cli\line("");
+        if ($args[0] !== 'plugins' && $args[0] !== 'modules') {
+            $this->terminal->addResponse('Either plugins or modules can be checked. Don\'t know what ' . $args[0] . ' is...', 1);
 
-            return true;
+            return false;
+        }
+
+        if ($args[0] === 'modules') {
+            $headers = ['name', 'package_name', 'version', 'location', 'description'];
+            $columnsWidth = [10,50,50,40,15];
+        } else if ($args[0] === 'plugins') {
+            if (!isset($this->terminal->config['plugins']) ||
+                (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) === 0)
+            ) {
+                \cli\line("");
+                \cli\line("%yNo plugins available. Search plugins via composer in enable mode.%w");
+                \cli\line("Run command : composer search plugins");
+                \cli\line("");
+                \cli\line("%yTo install new plugins via composer in config mode.%w");
+                \cli\line("Run command : composer install plugin {plugin_name}");
+                \cli\line("");
+
+                return true;
+            }
+
+            $headers = ['name', 'package_name', 'version', 'class', 'description'];
+            $columnsWidth = [10,50,50,40,15];
         }
 
         $this->terminal->addResponse(
             '',
             0,
-            ['Installed Plugins' => $this->terminal->config['plugins']],
+            ['Installed ' . ucfirst($args[0]) => $this->terminal->config[$args[0]] ?? []],
             true,
-            [
-                'name', 'package_name', 'version', 'class', 'description'
-            ],
-            [
-                10,50,50,40,15
-            ]
+            $headers,
+            $columnsWidth
         );
 
         return true;
     }
 
-    protected function composerSearchPlugins()
+    protected function composerSearch(array $args)
     {
-        \cli\line("");
-        \cli\line("%bSearching...%w");
-        \cli\line("");
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide needs to be checked, plugins or modules.', 1);
 
-        if ($this->runComposerCommand('search -N phpterminal-plugins')) {
-            $this->readComposerInstallFile();
+            return false;
         }
 
-        return true;
-    }
+        if ($args[0] !== 'plugins' && $args[0] !== 'modules') {
+            $this->terminal->addResponse('Either plugins or modules can be checked. Don\'t know what ' . $args[0] . ' is...', 1);
 
-    protected function composerSearchModules()
-    {
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bSearching...%w");
         \cli\line("");
 
-        if ($this->runComposerCommand('search -N phpterminal-modules')) {
-            $this->readComposerInstallFile();
+        if ($this->runComposerCommand('search -f json phpterminal-' . $args[0])) {
+            $composerInfomation = file_get_contents(base_path('composer.install'));
+
+            $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
+
+            $composerInfomation = @json_decode($composerInfomation, true);
+
+            if ($composerInfomation && count($composerInfomation) > 0) {
+                $this->terminal->addResponse(
+                    '',
+                    0,
+                    [ucfirst($args[0]) => $composerInfomation],
+                    true,
+                    [
+                        'name', 'description'
+                    ],
+                    [
+                        50,100
+                    ]
+                );
+            } else {
+                $this->readComposerInstallFile(true);
+
+                return false;
+            }
+        } else {
+            $this->readComposerInstallFile(true);
+
+            return false;
         }
 
         return true;
