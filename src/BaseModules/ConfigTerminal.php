@@ -48,24 +48,32 @@ class ConfigTerminal extends Modules
                     "command"       => "set idle timeout",
                     "description"   => "Set idle timeout {seconds}. Seconds can be between 60-3600 (1 min to 1 hr)",
                     "function"      => "set",
-                ],
+                ]
+            ];
+
+        if (count($this->terminal->config['modules']) > 1) {
+            array_push($commands,
                 [
                     "availableAt"   => "config",
                     "command"       => "switch module",
                     "description"   => "switch module {module_name}. Switch terminal module.",
                     "function"      => "switch"
+                ]
+            );
+        }
+
+            array_push($commands,
+                [
+                    "availableAt"   => "config",
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "",
                     "description"   => "composer commands",
                     "function"      => ""
-                ],
-                [
-                    "availableAt"   => "config",
-                    "command"       => "composer add plugin",
-                    "description"   => "composer add plugin {plugin_package_name}. To add pre-installed plugin (via composer) into phpterminal.",
-                    "function"      => "composer"
                 ],
                 [
                     "availableAt"   => "config",
@@ -93,12 +101,6 @@ class ConfigTerminal extends Modules
                 ],
                 [
                     "availableAt"   => "config",
-                    "command"       => "composer add module",
-                    "description"   => "composer add module {module_package_name}. To add pre-installed module (via composer) into phpterminal.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "config",
                     "command"       => "composer install module",
                     "description"   => "composer install module {module_package_name}. To install module directly from composer.",
                     "function"      => "composer"
@@ -117,14 +119,26 @@ class ConfigTerminal extends Modules
                 ],
                 [
                     "availableAt"   => "config",
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "config",
                     "command"       => "composer resync",
                     "description"   => "If you installed a plugin or a module via composer and not via phpterminal, you can resync latest information from composer.",
                     "function"      => "composerResync"
                 ]
-            ];
+            );
 
         if (isset($this->terminal->config['plugins']['auth'])) {
             array_push($commands,
+                [
+                    "availableAt"   => "config",
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
+                ],
                 [
                     "availableAt"   => "config",
                     "command"       => "",
@@ -489,7 +503,7 @@ class ConfigTerminal extends Modules
             \cli\line($this->terminal->getBanner());
             \cli\line("");
         } else {
-            $this->terminal->addResponse('Unknwon module: ' . $module . '. Run show available modules from enable mode to see all available modules', 1);
+            $this->terminal->addResponse('Unknwon module: ' . $module . '. Run show installed modules from enable mode to see all installed modules', 1);
 
             return false;
         }
