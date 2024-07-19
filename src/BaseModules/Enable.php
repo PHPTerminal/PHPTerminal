@@ -268,6 +268,12 @@ class Enable extends Modules
             return false;
         }
 
+        if ($args[0] !== 'plugins' && $args[0] !== 'modules') {
+            $this->terminal->addResponse('Either plugins or modules can be checked. Don\'t know what ' . $args[0] . ' is...', 1);
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line('%bChecking ' . $args[0] . ' for any updates...%w');
         \cli\line("");
@@ -307,6 +313,7 @@ class Enable extends Modules
                             \cli\line('%yUpdate available for package %w' . $package['package_name']);
                             \cli\line('%bInstalled version: %w' . $package['version']);
                             \cli\line('%bAvailable version: %w' . $composerInfomation['latest']);
+                            \cli\line('%bUpgrade command: %wcomposer upgrade ' . substr($args[0], 0, -1) . $package['package_name']);
 
                             if (strtolower($args[0]) === 'modules' &&
                                 $package['package_name'] === 'phpterminal/phpterminal'
@@ -332,11 +339,10 @@ class Enable extends Modules
             }
         }
 
-        if ($packageToUpdate) {
-            \cli\line('%gUpdates available for packages. Run %wcomposer upgrade ' . $args[0] . ' {package_name} %gfrom configure terminal mode.%w');
-        } else {
+        if (!$packageToUpdate) {
             \cli\line('%gAll installed packages are up to date!%w');
         }
+
         \cli\line("");
 
         return true;
