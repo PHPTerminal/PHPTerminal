@@ -85,6 +85,7 @@ abstract class Base
                 [
                     '_id'           => 1,
                     'hostname'      => 'phpterminal',
+                    'idleTimeout'   => 3600,//1 Hr. minimum will be 1 min Max will be 3600 1Hr
                     'active_module' => 'base',
                     'modules'       => [
                         'base'      => [
@@ -110,6 +111,8 @@ abstract class Base
         if ((isset($this->config['modules']) && count($this->config['modules']) === 0) ||
             !isset($this->config['modules'])
         ) {
+            $this->config['hostname'] = 'phpterminal';
+            $this->config['idleTimeout'] = 3600;//1 Hr. minimum will be 1 min Max will be 3600 1Hr
             $this->config['active_module'] = 'base';
             $this->config['modules']['base']['name'] = 'base';
             $this->config['modules']['base']['package_name'] = 'phpterminal/phpterminal';

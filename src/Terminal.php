@@ -33,7 +33,7 @@ class Terminal extends Base
 
     protected $helpList = [];
 
-    protected $sessionTimeout = 3600;
+    protected $idleTimeout;
 
     protected $loginAt;
 
@@ -60,18 +60,22 @@ class Terminal extends Base
             exit(1);
         }
 
-        system('clear');
-
         \cli\line("");
         \cli\line($this->banner);
         \cli\line("");
+
+        $this->resetLastAccessTime();
 
         return $this;
     }
 
     public function run($terminated = false)
     {
-        $this->resetTime();
+        if ($this->connectionReachedIdleTimeout()) {
+            $this->quit(true);
+        }
+
+        $this->resetLastAccessTime();
 
         $this->updateAutoComplete();
 
@@ -170,7 +174,7 @@ class Terminal extends Base
                 }
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
                 $this->showHelp();
-            } else if (checkCtype($command, 'alnum', ['/',' ','-'])) {
+            } else if (checkCtype($command, 'alnum', ['/',' ','-','.'])) {
                 if (!$this->searchCommand($command)) {
                     echo "Command " . $command . " not found!\n";
                 } else {
@@ -244,16 +248,24 @@ class Terminal extends Base
         return $this->whereAt;
     }
 
-    public function resetTime()
+    public function resetLastAccessTime()
     {
-        if (isset($this->config['plugins']['auth'])) {
-            $this->updateConfig(['updatedAt' => time()]);
-        }
+        $this->updateConfig(['lastAccessAt' => time()]);
     }
 
-    public function getSessionTimeout()
+    public function setIdleTimeout($timeout = 3600)
     {
-        return $this->sessionTimeout;
+        if ($timeout < 60) {
+            $timeout = 60;
+        }
+
+        if ($timeout > 3600) {
+            $timeout = 3600;
+        }
+
+        $this->config['idleTimeout'] = (int) $timeout;
+
+        $this->updateConfig(['idleTimeout' => (int) $timeout]);
     }
 
     public function setPrompt($prompt)
@@ -458,10 +470,32 @@ class Terminal extends Base
         ];
     }
 
-    protected function quit()
+    protected function connectionReachedIdleTimeout()
+    {
+        if (!isset($this->config['idleTimeout'])) {
+            return false;
+        }
+        if (!isset($this->config['lastAccessAt'])) {
+            return false;
+        }
+
+        $timediff = time() - (int) $this->config['lastAccessAt'];
+
+        if ($timediff > (int) $this->config['idleTimeout']) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function quit($reachedIdleTimeout = false)
     {
         \cli\line('');
-        \cli\line('Bye!');
+        if ($reachedIdleTimeout) {
+            \cli\line('%rConnection idle timeout reached!%w');
+            \cli\line('');
+        }
+        \cli\line('%bBye!%w');
         \cli\line('');
 
         exit(0);
