@@ -39,6 +39,14 @@ class Enable extends Modules
 
     public function configTerminal()
     {
+        $account = $this->terminal->getAccount();
+
+        if ($account && $account['permissions']['config'] === false) {
+            $this->terminal->addResponse('Permissions denied!', 1);
+
+            return false;
+        }
+
         $this->terminal->setWhereAt('config');
         $this->terminal->setPrompt('(config)# ');
 
@@ -47,7 +55,7 @@ class Enable extends Modules
 
     public function getCommands() : array
     {
-        return
+        $commands =
             [
                 [
                     "availableAt"   => "enable",
@@ -116,6 +124,25 @@ class Enable extends Modules
                     "function"      => "composer"
                 ]
             ];
+
+        if (isset($this->terminal->config['plugins']['auth'])) {
+            array_push($commands,
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "Auth Plugin Commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "show accounts",
+                    "description"   => "Show all accounts.",
+                    "function"      => "show"
+                ]
+            );
+        }
+
+        return $commands;
     }
 
     protected function showRun()
@@ -125,6 +152,34 @@ class Enable extends Modules
         unset($runningConfiguration['_id']);
 
         $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
+
+        return true;
+    }
+
+    protected function showAccounts()
+    {
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        $accounts = $auth->getAllAccounts();
+
+        if ($accounts) {
+            $this->terminal->addResponse(
+                '',
+                0,
+                ['accounts' => $accounts],
+                true,
+                [
+                    'id', 'username', 'full_name', 'email', 'permissions_enable', 'permissions_config'
+                ],
+                [
+                    3,20,30,30,20,20
+                ]
+            );
+        } else {
+            $this->terminal->addResponse('Error retrieving list of accounts', 1);
+
+            return false;
+        }
 
         return true;
     }

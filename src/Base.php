@@ -203,7 +203,7 @@ abstract class Base
         $this->progress->finish();
     }
 
-    public function inputToArray(array $inputFields)
+    public function inputToArray(array $inputFields, array $inputFieldsData = [])
     {
         $outputArr = [];
 
@@ -217,12 +217,15 @@ abstract class Base
                 readline_callback_handler_install("", function () {});
             }
 
-            \cli\out("%b" . strtoupper($inputField) . ' : %w');
+            \cli\out("%b" . strtoupper($inputField) . (isset($inputFieldsData[$inputField]) ? '%c(' . $inputFieldsData[$inputField] . ')%b' : '') . ' : %w');
 
             while (true) {
                 $input = stream_get_contents(STDIN, 1);
 
-                if (ord($input) == 10) {
+                if (ord($input) == 10 || ord($input) == 13) {
+                    if ($isSecret) {
+                        \cli\line("");
+                    }
                     break;
                 } else if (ord($input) == 27) {
                     return [];
@@ -243,6 +246,12 @@ abstract class Base
             }
 
             $outputArr[$inputField] = join($inputFieldArr);
+
+            if ($outputArr[$inputField] === '' &&
+                isset($inputFieldsData[$inputField])
+            ) {
+                $outputArr[$inputField] = $inputFieldsData[$inputField];
+            }
 
             if ($isSecret) {
                 readline_callback_handler_remove();

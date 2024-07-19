@@ -66,7 +66,7 @@ class Disable extends Modules
 
             if (ord($input) == 10 || ord($input) == 13) {
                 if (!$initial) {
-                    \cli\line("%r%w");
+                    \cli\line("");
                 }
                 break;
             } else if (ord($input) == 127) {
@@ -154,15 +154,23 @@ class Disable extends Modules
             $account = $this->auth->attempt($this->username, $this->password);
 
             if ($account) {
+                if ($account['permissions']['enable'] === false) {
+                    $this->terminal->addResponse('Permissions denied!', 1);
+
+                    return false;
+                }
+
                 $this->setEnableMode($account);
 
                 $this->terminal->addResponse(
-                    'Authenticated! Welcome ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['profile']['email'] . '...'
+                    'Authenticated! Welcome ' . ($this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['profile']['email']) . '...'
                 );
 
                 return true;
             }
         } catch (\Exception $e) {
+            $this->terminal->addResponse($e->getMessage(), 1);
+
             return false;
         }
 
