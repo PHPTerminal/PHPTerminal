@@ -163,7 +163,7 @@ class Disable extends Modules
                 $this->setEnableMode($account);
 
                 $this->terminal->addResponse(
-                    'Authenticated! Welcome ' . $this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['profile']['email'] . '...'
+                    'Authenticated! Welcome ' . ($this->terminal->getAccount()['profile']['full_name'] ?? $this->terminal->getAccount()['profile']['email']) . '...'
                 );
 
                 return true;

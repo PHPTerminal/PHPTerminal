@@ -139,20 +139,14 @@ class ConfigTerminal extends Modules
                 array_push($commands,
                     [
                         "availableAt"   => "config",
-                        "command"       => "",
-                        "description"   => "Auth Plugin Commands",
-                        "function"      => ""
+                        "command"       => "passwd",
+                        "description"   => "Set new password for current logged in user.",
+                        "function"      => "passwd"
                     ]
                 );
             }
 
             array_push($commands,
-                [
-                    "availableAt"   => "config",
-                    "command"       => "passwd",
-                    "description"   => "Set new password for current logged in user.",
-                    "function"      => "passwd"
-                ],
                 [
                     "availableAt"   => "config",
                     "command"       => "account add",

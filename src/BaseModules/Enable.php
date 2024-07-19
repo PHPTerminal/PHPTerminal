@@ -158,7 +158,28 @@ class Enable extends Modules
 
     protected function showAccounts()
     {
-        $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
+        $auth = (new $this->terminal->config['plugins']['auth']['class']())->init($this->terminal);
+
+        $accounts = $auth->getAllAccounts();
+
+        if ($accounts) {
+            $this->terminal->addResponse(
+                '',
+                0,
+                ['accounts' => $accounts],
+                true,
+                [
+                    'id', 'username', 'full_name', 'email', 'permissions_enable', 'permissions_config'
+                ],
+                [
+                    3,20,30,30,20,20
+                ]
+            );
+        } else {
+            $this->terminal->addResponse('Error retrieving list of accounts', 1);
+
+            return false;
+        }
 
         return true;
     }
