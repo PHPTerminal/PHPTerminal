@@ -1,7 +1,11 @@
 <?php
 
 if (!function_exists('base_path')) {
-    function base_path($path = '') {//Change this for composer
+    function base_path($path = '', $root = null) {
+        if ($root) {
+            return $root . '/..' . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+        }
+
         return __DIR__ . '/..' . ($path ? DIRECTORY_SEPARATOR . $path : $path);
     }
 }
