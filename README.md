@@ -3,7 +3,7 @@ PHPTerminal is a CLI tool to make calls using predefined commands. It runs conti
 
 <h2>Documentation:</h2>
 
-[Documentation for this repository](https://github.com/oyeaussie/PHPTerminal/wiki/1.-Description)
+[Documentation for this repository](https://github.com/PHPTerminal/PHPTerminal/wiki/1.-Description)
 
 <h2>Credits:</h2>
 Thanks to the following projects for their great work. Without them, this project would not be possible.<br>

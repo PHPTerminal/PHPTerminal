@@ -5,7 +5,6 @@ namespace PHPTerminal;
 use GuzzleHttp\Client;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
-use League\Flysystem\UnableToCheckExistence;
 use PHPTerminal\BaseModules\ConfigTerminal;
 use PHPTerminal\CommandsData;
 use SleekDB\Store;
@@ -28,8 +27,6 @@ abstract class Base
     public $viaComposer = false;
 
     protected $progress;
-
-    protected $settings = [];
 
     protected $configStore;
 
