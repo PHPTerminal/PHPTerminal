@@ -206,7 +206,7 @@ class Enable extends Modules
 
         if ($args[0] === 'modules') {
             $headers = ['name', 'package_name', 'version', 'location', 'description'];
-            $columnsWidth = [10,50,50,40,15];
+            $columnsWidth = [10,50,10,40,40];
         } else if ($args[0] === 'plugins') {
             if (!isset($this->terminal->config['plugins']) ||
                 (isset($this->terminal->config['plugins']) && count($this->terminal->config['plugins']) === 0)
@@ -223,7 +223,7 @@ class Enable extends Modules
             }
 
             $headers = ['name', 'package_name', 'version', 'class', 'description'];
-            $columnsWidth = [10,50,50,40,15];
+            $columnsWidth = [10,50,10,30,50];
         }
 
         $this->terminal->addResponse(
