@@ -174,7 +174,7 @@ class Terminal extends Base
                 }
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
                 $this->showHelp();
-            } else if (checkCtype($command, 'alnum', ['/',' ','-','.'])) {
+            } else if (checkCtype($command, 'alnum', ['/',' ','-','.',':'])) {
                 if (!$this->searchCommand($command)) {
                     echo "Command " . $command . " not found!\n";
                 } else {
@@ -618,7 +618,7 @@ class Terminal extends Base
             if ($this->commandsData->responseMessage && $this->commandsData->responseMessage !== '') {
                 \cli\line($color . $this->commandsData->responseMessage);
             }
-            \cli\out("%w");
+            \cli\line("%w");
 
             if ($this->commandsData->responseData && count($this->commandsData->responseData) > 0) {
                 if ($this->commandsData->responseDataIsList) {
