@@ -20,6 +20,142 @@ class Enable extends Modules
         return $this;
     }
 
+    public function getCommands() : array
+    {
+        $commands =
+            [
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "General commands",
+                    "function"      => ""
+                ]
+            ];
+
+        if (isset($this->terminal->config['plugins']['auth'])) {
+            array_push($commands,
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "show history",
+                    "description"   => "Show history {number_of_last_commands}. show history 10, will show last 10 history commands. 20 is default value.",
+                    "function"      => "show"
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "clear history",
+                    "description"   => "Clear terminal history",
+                    "function"      => "clearHistory"
+                ]
+            );
+        }
+
+        array_push($commands,
+            [
+                "availableAt"   => "enable",
+                "command"       => "config terminal",
+                "description"   => "Configure terminal Settings",
+                "function"      => "configTerminal"
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "",
+                "description"   => "",
+                "function"      => ""
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "",
+                "description"   => "show commands",
+                "function"      => ""
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "show run",
+                "description"   => "Show running configuration.",
+                "function"      => "show"
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "show installed",
+                "description"   => "show installed {plugins/modules}. Show a list of all installed plugins/modules.",
+                "function"      => "show"
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "",
+                "description"   => "",
+                "function"      => ""
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "",
+                "description"   => "composer commands",
+                "function"      => ""
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "composer search",
+                "description"   => "composer search {plugins/modules}. Search for plugins/modules in packagist.org repository.",
+                "function"      => "composer"
+            ],
+            [
+                "availableAt"   => "enable",
+                "command"       => "composer check",
+                "description"   => "composer check {plugins/modules}. Check if installed plugins/modules have any updates.",
+                "function"      => "composer"
+            ]
+        );
+
+        if (isset($this->terminal->config['plugins']['auth'])) {
+            array_push($commands,
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "",
+                    "description"   => "Auth Plugin Commands",
+                    "function"      => ""
+                ],
+                [
+                    "availableAt"   => "enable",
+                    "command"       => "show accounts",
+                    "description"   => "Show all accounts.",
+                    "function"      => "show"
+                ]
+            );
+        }
+
+        return $commands;
+    }
+
+    protected function showHistory($args = [])
+    {
+        if (!isset($args[0])) {
+            $args[0] = 20;
+        }
+
+        if ($this->terminal->getAccount() && $this->terminal->getAccount()['id']) {
+            $history = readline_list_history();
+            if ($history && count($history) > 0) {
+                if ($args[0] < count($history)) {
+                    $history = array_slice($history, (count($history) - $args[0]), $args[0], true);
+                }
+
+                $this->terminal->addResponse('Ok', 0, ['history' => $history]);
+
+                return true;
+            }
+        }
+
+        $this->terminal->addResponse('No history!', 2);
+
+        return true;
+    }
+
     public function clearHistory()
     {
         if ($this->terminal->getAccount() && $this->terminal->getAccount()['id']) {
@@ -51,104 +187,6 @@ class Enable extends Modules
         $this->terminal->setPrompt('(config)# ');
 
         return true;
-    }
-
-    public function getCommands() : array
-    {
-        $commands =
-            [
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "General commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "clear history",
-                    "description"   => "Clear terminal history",
-                    "function"      => "clearHistory"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "config terminal",
-                    "description"   => "Configure terminal Settings",
-                    "function"      => "configTerminal"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "show commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show run",
-                    "description"   => "Show running configuration.",
-                    "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show installed",
-                    "description"   => "show installed {plugins/modules}. Show a list of all installed plugins/modules.",
-                    "function"      => "show"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "composer commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "composer search",
-                    "description"   => "composer search {plugins/modules}. Search for plugins/modules in packagist.org repository.",
-                    "function"      => "composer"
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "composer check",
-                    "description"   => "composer check {plugins/modules}. Check if installed plugins/modules have any updates.",
-                    "function"      => "composer"
-                ]
-            ];
-
-        if (isset($this->terminal->config['plugins']['auth'])) {
-            array_push($commands,
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "",
-                    "description"   => "Auth Plugin Commands",
-                    "function"      => ""
-                ],
-                [
-                    "availableAt"   => "enable",
-                    "command"       => "show accounts",
-                    "description"   => "Show all accounts.",
-                    "function"      => "show"
-                ]
-            );
-        }
-
-        return $commands;
     }
 
     protected function showRun()
