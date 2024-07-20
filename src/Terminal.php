@@ -541,7 +541,7 @@ class Terminal extends Base
                     }
                 }
                 $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([25, 125]));
+                $table->setRenderer(new \cli\table\Ascii([30, 125]));
                 $table->display();
                 \cli\line('%w');
             }
@@ -556,7 +556,7 @@ class Terminal extends Base
                     }
                 }
                 $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([25, 125]));
+                $table->setRenderer(new \cli\table\Ascii([30, 125]));
                 $table->display();
                 \cli\line('%w');
             }
@@ -663,6 +663,10 @@ class Terminal extends Base
                     }
 
                     foreach ($this->commandsData->responseData as $responseKey => $responseValues) {
+                        array_walk($responseValues, function(&$responseValue) {
+                            $responseValue = array_replace(array_flip($this->commandsData->showColumns), $responseValue);
+                        });
+
                         $responseValues = array_values($responseValues);
                         $responseData = true_flatten($responseValues);
 
