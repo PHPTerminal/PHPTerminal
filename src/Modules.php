@@ -55,6 +55,10 @@ class Modules implements ModulesInterface
                     }
                 });
                 $orgCommandMethod = implode('', $orgCommand);
+
+                if (strtolower($this->command) === strtolower($commands['command'])) {
+                    break;
+                }
             }
         }
 
