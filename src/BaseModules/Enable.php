@@ -302,16 +302,28 @@ class Enable extends Modules
             $composerInfomation = @json_decode($composerInfomation, true);
 
             if ($composerInfomation && count($composerInfomation) > 0) {
+                $uniqueArr = unique_multidim_array($composerInfomation, 'name');
+
+                foreach ($uniqueArr as &$unique) {
+                    $unique['installed'] = 'No';
+
+                    foreach ($this->terminal->config[$args[0]] as $package) {
+                        if ($unique['name'] === $package['package_name']) {
+                            $unique['installed'] = 'Yes';
+                        }
+                    }
+                }
+
                 $this->terminal->addResponse(
                     '',
                     0,
-                    [ucfirst($args[0]) => $composerInfomation],
+                    [ucfirst($args[0]) => $uniqueArr],
                     true,
                     [
-                        'name', 'description'
+                        'name', 'installed', 'description'
                     ],
                     [
-                        50,100
+                        50,10,100
                     ]
                 );
             } else {
