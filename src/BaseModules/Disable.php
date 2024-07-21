@@ -58,16 +58,15 @@ class Disable extends Modules
             \cli\out("%wUsername: ");
         } else {
             \cli\out("%wPassword: ");
-            readline_callback_handler_install("", function () {});
         }
+        readline_callback_handler_install("", function () {});
 
         while (true) {
             $input = stream_get_contents(STDIN, 1);
 
             if (ord($input) == 10 || ord($input) == 13) {
-                if (!$initial) {
-                    \cli\line("");
-                }
+                \cli\line("");
+
                 break;
             } else if (ord($input) == 127) {
                 if (count($command) === 0) {
@@ -76,10 +75,14 @@ class Disable extends Modules
                 array_pop($command);
                 fwrite(STDOUT, chr(8));
                 fwrite(STDOUT, "\033[0K");
+            } else if (ord($input) == 9) {
+                //Do nothing on tab
             } else {
                 $command[] = $input;
                 if (!$initial) {
                     fwrite(STDOUT, '*');
+                } else {
+                    fwrite(STDOUT, $input);
                 }
             }
         }
