@@ -502,7 +502,7 @@ class Terminal extends Base
     {
         if ($this->account) {
             $path = $this->checkHistoryPath();
-            var_dump($path);
+
             if ($path) {
                 $historyArr = readline_list_history();
 
