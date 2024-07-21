@@ -139,16 +139,6 @@ class Terminal extends Base
             } else if ($command === 'clear') {
                 system('clear');
             } else if ($command === 'quit') {
-                if ($this->whereAt === 'enable' || $this->whereAt === 'config') {
-                    if ($this->account) {
-                        $path = $this->checkHistoryPath();
-
-                        if ($path) {
-                            readline_write_history($path . $this->account['id']);
-                        }
-                    }
-                }
-
                 break;
             } else if ($command === 'exit') {
                 if ($this->whereAt === 'disable') {
@@ -158,13 +148,7 @@ class Terminal extends Base
                         $this->whereAt = 'enable';
                         $this->prompt = '# ';
                     } else {
-                        if ($this->account) {
-                            $path = $this->checkHistoryPath();
-
-                            if ($path) {
-                                readline_write_history($path . $this->account['id']);
-                            }
-                        }
+                        $this->writeHistory();
 
                         $this->account = null;
                         $this->whereAt = 'disable';
@@ -266,6 +250,17 @@ class Terminal extends Base
         $this->config['idleTimeout'] = (int) $timeout;
 
         $this->updateConfig(['idleTimeout' => (int) $timeout]);
+    }
+
+    public function setHistoryLimit($limit = 2000)
+    {
+        if ($limit > 2000) {
+            $limit = 2000;
+        }
+
+        $this->config['historyLimit'] = (int) $limit;
+
+        $this->updateConfig(['historyLimit' => (int) $limit]);
     }
 
     public function setPrompt($prompt)
@@ -490,6 +485,8 @@ class Terminal extends Base
 
     protected function quit($reachedIdleTimeout = false)
     {
+        $this->writeHistory();
+
         \cli\line('');
         if ($reachedIdleTimeout) {
             \cli\line('%rConnection idle timeout reached!%w');
@@ -499,6 +496,33 @@ class Terminal extends Base
         \cli\line('');
 
         exit(0);
+    }
+
+    protected function writeHistory()
+    {
+        if ($this->account) {
+            $path = $this->checkHistoryPath();
+            var_dump($path);
+            if ($path) {
+                $historyArr = readline_list_history();
+
+                if ($historyArr && count($historyArr) > 0) {
+                    if (count($historyArr) > ($this->config['historyLimit'] ?? 2000)) {
+                        $historyArr = array_slice($historyArr, (count($historyArr) - ($this->config['historyLimit'] ?? 2000)), ($this->config['historyLimit'] ?? 2000), true);
+
+                        readline_clear_history();
+
+                        array_walk($historyArr, function($history) {
+                            readline_add_history($history);
+                        });
+                    }
+                }
+
+                readline_write_history($path . $this->account['id']);
+
+                readline_clear_history();
+            }
+        }
     }
 
     protected function processFilters(array $filters)
