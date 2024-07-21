@@ -145,7 +145,7 @@ class Enable extends Modules
                     $history = array_slice($history, (count($history) - $args[0]), $args[0], true);
                 }
 
-                $this->terminal->addResponse('Ok', 0, ['history' => $history]);
+                $this->terminal->addResponse('History limit is set to ' . $this->terminal->config['historyLimit'], 0, ['history' => $history]);
 
                 return true;
             }

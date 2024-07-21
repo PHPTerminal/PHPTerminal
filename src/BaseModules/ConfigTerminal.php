@@ -48,6 +48,12 @@ class ConfigTerminal extends Modules
                     "command"       => "set idle timeout",
                     "description"   => "Set idle timeout {seconds}. Seconds can be between 60-3600 (1 min to 1 hr)",
                     "function"      => "set",
+                ],
+                [
+                    "availableAt"   => "config",
+                    "command"       => "set history limit",
+                    "description"   => "Set history limit {number_of_lines}. Max 2000.",
+                    "function"      => "set",
                 ]
             ];
 
@@ -380,6 +386,25 @@ class ConfigTerminal extends Modules
         }
 
         $this->terminal->setIdleTimeout($args[0]);
+
+        return true;
+    }
+
+    protected function setHistoryLimit(array $args)
+    {
+        if (!isset($args[0])) {
+            $this->terminal->addResponse('Please provide valid number. Max 2000', 1);
+
+            return false;
+        }
+
+        if (!checkCtype($args[0], 'digits')) {
+            $this->terminal->addResponse('Please provide valid number. Max 2000', 1);
+
+            return false;
+        }
+
+        $this->terminal->setHistoryLimit($args[0]);
 
         return true;
     }
