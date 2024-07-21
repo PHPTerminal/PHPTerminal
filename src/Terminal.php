@@ -531,6 +531,14 @@ class Terminal extends Base
             \cli\line('');
 
             foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
+                if (isset($this->filters['values']) &&
+                    count($this->filters['values']) > 0 &&
+                    isset($this->helpList[$this->whereAt][strtolower($this->filters['values'][0])]) &&
+                    strtolower($this->filters['values'][0]) !== $moduleName
+                ) {
+                    continue;
+                }
+
                 \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
                 $table = new \cli\Table();
                 $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
@@ -545,6 +553,14 @@ class Terminal extends Base
                 $table->display();
                 \cli\line('%w');
             }
+
+            if (isset($this->filters['values']) &&
+                count($this->filters['values']) > 0 &&
+                isset($this->helpList[$this->whereAt][strtolower($this->filters['values'][0])])
+            ) {
+                return true;
+            }
+
             foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
                 \cli\line("%yGLOBAL COMMANDS%w");
                 $table = new \cli\Table();
