@@ -173,9 +173,9 @@ abstract class Base
         $this->commandsData->responseDataIsList = $responseDataIsList;
 
         if ($responseDataIsList &&
-            ($this->displayMode === 'table' && (count($showColumns) === 0 || count($showColumns) > 7))
+            ($this->displayMode === 'table' && (count($showColumns) === 0 || count($showColumns) > 10))
         ) {
-            throw new \Exception('Showing data as table needs showColumns array set and only 7 columns can be shown. Contact developer!');
+            throw new \Exception('Showing data as table needs showColumns array set and only 10 columns can be shown. Contact developer!');
         }
         if ($responseDataIsList &&
             ($this->displayMode === 'table' && (count($columnsWidths) === 0 || count($columnsWidths) !== count($showColumns)))
