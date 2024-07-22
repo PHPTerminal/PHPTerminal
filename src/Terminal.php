@@ -188,6 +188,11 @@ class Terminal extends Base
         $this->quit();
     }
 
+    public function getFilters()
+    {
+        return $this->filters;
+    }
+
     public function setActiveModule()
     {
         if (isset($this->config['active_module'])) {
@@ -612,7 +617,7 @@ class Terminal extends Base
                 if (str_starts_with(strtolower($command), strtolower($commands['command']))) {
                     try {
                         return $this->execCommand($command, $commands);
-                    } catch (\Exception $e) {
+                    } catch (\throwable $e) {
                         \cli\line("%r" . $e->getMessage() . "%w");
 
                         return true;
