@@ -59,6 +59,12 @@ class Modules implements ModulesInterface
                 if (strtolower($this->command) === strtolower($commands['command'])) {
                     break;
                 }
+                //Put lists view commands on top for a perfect match
+                //Ex: show filters vs show filter
+                //put show filters before show filter.
+                if (method_exists($this, $orgCommandMethod)) {
+                    break;
+                }
             }
         }
 
