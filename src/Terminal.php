@@ -129,7 +129,9 @@ class Terminal extends Base
                         if (!$this->searchCommand($command)) {
                             echo "Command " . $command . " not found!\n";
                         } else {
-                            readline_add_history($command);
+                            if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                                readline_add_history($command);
+                            }
                         }
                     }
 
@@ -164,15 +166,23 @@ class Terminal extends Base
                 } else {
                     if ($this->filters) {
                         if ($this->displayMode === 'list') {
-                            readline_add_history($this->filterCommand . ' > list');
+                            if (readline_list_history()[array_key_last(readline_list_history())] !== $this->filterCommand . ' > list') {
+                                readline_add_history($this->filterCommand . ' > list');
+                            }
                         } else {
-                            readline_add_history($this->filterCommand);
+                            if (readline_list_history()[array_key_last(readline_list_history())] !== $this->filterCommand) {
+                                readline_add_history($this->filterCommand);
+                            }
                         }
                     } else {
                         if ($this->displayMode === 'list') {
-                            readline_add_history($command . ' > list');
+                            if (readline_list_history()[array_key_last(readline_list_history())] !== $command . ' > list') {
+                                readline_add_history($command . ' > list');
+                            }
                         } else {
-                            readline_add_history($command);
+                            if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                                readline_add_history($command);
+                            }
                         }
                     }
                 }
