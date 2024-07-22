@@ -62,7 +62,7 @@ abstract class Base
             "auto_cache"        => true,
             "cache_lifetime"    => null,
             "timeout"           => false,
-            "primary_key"       => "_id",
+            "primary_key"       => "id",
             "search"            =>
                 [
                     "min_length"    => 2,
@@ -80,7 +80,7 @@ abstract class Base
         if (!$this->config) {
             $this->config = $this->configStore->updateOrInsert(
                 [
-                    '_id'           => 1,
+                    'id'            => 1,
                     'hostname'      => 'phpterminal',
                     'idleTimeout'   => 3600,//1 Hr. minimum will be 1 min Max will be 3600 1Hr
                     'historyLimit'  => 2000,//Max 2000 lines
