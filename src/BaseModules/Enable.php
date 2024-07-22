@@ -193,7 +193,7 @@ class Enable extends Modules
     {
         $runningConfiguration = $this->terminal->config;
 
-        unset($runningConfiguration['_id']);
+        unset($runningConfiguration['id']);
 
         $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
 
