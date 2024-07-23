@@ -243,7 +243,7 @@ abstract class Base
             if (isset($inputFieldsOptions[$inputField])) {
                 $options = $inputFieldsOptions[$inputField];
 
-                \cli\line('%bOPTIONS: %m[' . join(',', $options) . ']%w');
+                \cli\line('%bOPTIONS: %m[' . join(' | ', $options) . ']%w');
                 \cli\line('');
             }
 
