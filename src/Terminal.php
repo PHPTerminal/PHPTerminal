@@ -6,6 +6,7 @@ use League\Flysystem\StorageAttributes;
 use League\Flysystem\UnableToListContents;
 use PHPTerminal\Base;
 use ReflectionClass;
+use Seld\Signal\SignalHandler;
 
 class Terminal extends Base
 {
@@ -79,12 +80,7 @@ class Terminal extends Base
 
         $this->updateAutoComplete();
 
-        if (!pcntl_async_signals()) {
-            pcntl_async_signals(true);
-            pcntl_signal(SIGINT, function() {
-                $this->run(true);
-            });
-        }
+        $signal = SignalHandler::create();
 
         if ($terminated) {
             $command = readline();
@@ -93,6 +89,10 @@ class Terminal extends Base
         }
 
         while (true) {
+            if ($signal->isTriggered()) {
+               \cli\line('');
+            }
+
             $command = trim(strtolower($command));
 
             $this->filters = null;
