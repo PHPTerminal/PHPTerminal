@@ -207,17 +207,30 @@ abstract class Base
         $this->progress->finish();
     }
 
-    public function inputToArray(array $inputFields, array $inputFieldsOptions = [], array $inputFieldsDefaults = [], array $inputFieldsCurrentValues = [])
-    {
-        \cli\line('%bHit Esc key anytime to quit form.');
-        \cli\line('%bHit enter or tab for next field. If previous value is defined, no need to re-enter the value.');
-        \cli\line('%bIf default value is defined, enter few characters and hit tab to autocomplete.');
-        \cli\line('%bEnter null to remove previous value.');
-        \cli\line('%w');
+    public function inputToArray(
+        array $inputFields,
+        array $inputFieldsOptions = [],
+        array $inputFieldsDefaults = [],
+        array $inputFieldsCurrentValues = [],
+        array $inputFieldsRequired = [],
+        int $requiredFieldReenterCount = 3,
+        bool $showHint = true
+    ) {
+        if ($showHint) {
+            \cli\line('');
+            \cli\line('%bHit Esc key anytime to quit form.');
+            \cli\line('%bHit enter or tab for next field. If previous value is defined, no need to re-enter the value.');
+            \cli\line('%bIf default value is defined, enter few characters and hit tab to autocomplete.');
+            \cli\line('%bEnter null to remove previous value.');
+            \cli\line('%w');
+        }
 
         $outputArr = [];
 
         foreach ($inputFields as $inputField) {
+            \cli\line('');
+            $inputFieldInputCounter = 1;
+
             $inputFieldArr = [];
             $isSecret = false;
 
@@ -270,15 +283,34 @@ abstract class Base
                         }
                     }
 
-                    if ($isSecret && ord($input) != 9) {
-                        \cli\line("");
-                    }
-
-
                     if ($outputArr[$inputField] === '' &&
                         isset($inputFieldsCurrentValues[$inputField])
                     ) {
                         $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                    }
+
+                    if ($outputArr[$inputField] === '') {
+                        if (count($inputFieldsRequired) > 0 && in_array($inputField, $inputFieldsRequired)) {
+                            if ($inputFieldInputCounter < $requiredFieldReenterCount) {
+                                \cli\line('');
+                                $inputFieldInputCounter++;
+
+                                $outputArr = [];
+                                $inputFieldArr = [];
+                                $initial = true;
+
+                                continue;
+                            } else {
+                                \cli\line('');
+                                \cli\line('');
+                                \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be empty. Terminated!%w');
+                                \cli\line('');
+
+                                readline_callback_handler_remove();
+
+                                return false;
+                            }
+                        }
                     }
 
                     if (isset($inputFieldsOptions[$inputField]) && is_array($inputFieldsOptions[$inputField])) {
