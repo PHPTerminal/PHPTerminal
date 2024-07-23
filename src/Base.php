@@ -209,7 +209,12 @@ abstract class Base
 
     public function inputToArray(array $inputFields, array $inputFieldsOptions = [], array $inputFieldsDefaults = [], array $inputFieldsCurrentValues = [])
     {
-        //Break sequence Esc key
+        \cli\line('%bHit Esc key anytime to quit form.');
+        \cli\line('%bHit enter or tab for next field. If previous value is defined, no need to re-enter the value.');
+        \cli\line('%bIf default value is defined, enter few characters and hit tab to autocomplete.');
+        \cli\line('%bEnter null to remove previous value.');
+        \cli\line('%w');
+
         $outputArr = [];
 
         foreach ($inputFields as $inputField) {
@@ -249,12 +254,26 @@ abstract class Base
 
                 $input = stream_get_contents(STDIN, 1);
 
-                if (ord($input) == 10 || ord($input) == 13) {
-                    if ($isSecret) {
+                if (ord($input) == 10 || ord($input) == 13 || ord($input) == 9) {//Hit enter or tab key
+                    $outputArr[$inputField] = join($inputFieldArr);
+
+                    if (ord($input) == 9) {
+                        if (isset($inputFieldsDefaults[$inputField]) &&
+                            $outputArr[$inputField] !== '' &&
+                            str_starts_with($inputFieldsDefaults[$inputField], $outputArr[$inputField])
+                        ) {
+                            $strOutput = str_replace($outputArr[$inputField], '', $inputFieldsDefaults[$inputField]);
+
+                            $outputArr[$inputField] = $inputFieldsDefaults[$inputField];
+
+                            fwrite(STDOUT, $strOutput);
+                        }
+                    }
+
+                    if ($isSecret && ord($input) != 9) {
                         \cli\line("");
                     }
 
-                    $outputArr[$inputField] = join($inputFieldArr);
 
                     if ($outputArr[$inputField] === '' &&
                         isset($inputFieldsCurrentValues[$inputField])
@@ -266,7 +285,8 @@ abstract class Base
                         if ($outputArr[$inputField] !== 'null' &&
                             !in_array($outputArr[$inputField], $inputFieldsOptions[$inputField])
                         ) {
-                            \cli\line('%rError: ' . strtoupper($inputField) . ' should only contain one of the options.');
+                            \cli\line('');
+                            \cli\line('%rError: ' . strtoupper($inputField) . ' should only contain one of the options. HINT: input is case sensitive.');
 
                             $outputArr = [];
                             $inputFieldArr = [];
