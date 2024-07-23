@@ -32,6 +32,10 @@ abstract class Base
 
     protected $dataPath;
 
+    public $trackCounter;
+
+    public $trackTicksCounter;
+
     public function __construct($createRoot = false, $dataPath = null)
     {
         if ($dataPath) {
@@ -218,7 +222,7 @@ abstract class Base
     ) {
         if ($showHint) {
             \cli\line('');
-            \cli\line('%bHit Esc key anytime to quit form.');
+            \cli\line('%bHit Esc+enter key anytime to quit form.');
             \cli\line('%bHit enter for next field. If previous value is defined, no need to re-enter the value.');
             \cli\line('%bIf default value is defined, enter few characters and hit tab to autofill and move to next field.');
             \cli\line('%bEnter null to remove previous value.');
@@ -226,6 +230,7 @@ abstract class Base
         }
 
         $outputArr = [];
+        $registerEscape = false;
 
         foreach ($inputFields as $inputField) {
             \cli\line('');
@@ -268,6 +273,19 @@ abstract class Base
                 $input = stream_get_contents(STDIN, 1);
 
                 if (ord($input) == 10 || ord($input) == 13 || ord($input) == 9) {//Hit enter or tab key
+                    if ($registerEscape) {
+                        \cli\line('');
+                        \cli\line('');
+                        \cli\line('%rTerminated!%w');
+                        \cli\line('');
+
+                        readline_callback_handler_remove();
+
+                        return false;
+                    } else {
+                        $registerEscape = false;
+                    }
+
                     $outputArr[$inputField] = join($inputFieldArr);
 
                     if (ord($input) == 9) {
@@ -306,13 +324,18 @@ abstract class Base
                         } else {
                             readline_callback_handler_remove();
 
+                            \cli\line('');
+
                             if (count($inputFieldsRequired) > 0 && in_array($inputField, $inputFieldsRequired)) {
-                                \cli\line('');
                                 \cli\line('');
                                 \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be empty. Terminated!%w');
                                 \cli\line('');
-
+                            } else {
+                                \cli\line('');
+                                \cli\line('%rMax re-enter counter reached. Terminated!%w');
+                                \cli\line('');
                             }
+
 
                             return false;
                         }
@@ -335,14 +358,11 @@ abstract class Base
 
                     break;
                 } else if (ord($input) == 27) {//Escape key pressed
-                    \cli\line('');
-                    \cli\line('');
-                    \cli\line('%rTerminated!%w');
-                    \cli\line('');
+                    $registerEscape = true;
 
-                    readline_callback_handler_remove();
+                    $initial = false;
 
-                    return false;
+                    continue;
                 } else if (ord($input) == 127) {
                     if (count($inputFieldArr) === 0) {
                         continue;
@@ -350,6 +370,7 @@ abstract class Base
                     array_pop($inputFieldArr);
                     fwrite(STDOUT, chr(8));
                     fwrite(STDOUT, "\033[0K");
+                    $registerEscape = false;
                 } else {
                     $inputFieldArr[] = $input;
 
@@ -360,6 +381,7 @@ abstract class Base
                     }
 
                     $initial = false;
+                    $registerEscape = false;
                 }
             }
 
@@ -369,6 +391,74 @@ abstract class Base
         \cli\line("");
 
         return $outputArr;
+    }
+
+    public function downloadData($url, $sink)
+    {
+        $this->trackCounter = 0;
+        $this->trackTicksCounter = 0;
+
+        $download = $this->remoteWebContent->request(
+            'GET',
+            $url,
+            [
+                'progress' => function(
+                    $downloadTotal,
+                    $downloadedBytes,
+                    $uploadTotal,
+                    $uploadedBytes
+                ) {
+                    if ($downloadTotal === 0 || $downloadedBytes === 0) {
+                        return;
+                    }
+
+                    //Trackcounter is needed as guzzelhttp runs this in a while loop causing too many updates with same download count.
+                    //So this way, we only update progress when there is actually an update.
+                    if ($downloadedBytes === $this->trackCounter) {
+                        return;
+                    }
+
+                    $this->trackCounter = $downloadedBytes;
+
+                    if (!$this->progress) {
+                        $this->newProgress(100);
+                    }
+
+                    if ($downloadedBytes === $downloadTotal) {
+                        if ($this->progress) {
+                            $this->updateProgress('Downloading file ' . '... (' . $downloadTotal . '/' . $downloadTotal . ')');
+
+                            $this->finishProgress();
+
+                            $this->progress = null;
+                        }
+                    } else {
+                        $downloadPercentTicks = (int) (($downloadedBytes * 100) / $downloadTotal);
+
+                        if ($downloadPercentTicks > $this->trackTicksCounter) {
+                            $this->trackTicksCounter = $downloadPercentTicks;
+
+                            $this->updateProgress('Downloading file ' . '... (' . $downloadedBytes . '/' . $downloadTotal . ')');
+                        }
+                    }
+                },
+                'verify'            => false,
+                'connect_timeout'   => 5,
+                'timeout'           => 360,
+                'sink'              => $sink
+            ]
+        );
+
+
+        if ($download->getStatusCode() === 200) {
+            $this->addResponse('Download file from URL: ' . $url);
+
+            return $download;
+        }
+
+        $this->addResponse('Download resulted in : ' . $download->getStatusCode(), 1);
+
+        return false;
     }
 
     protected function checkTerminalPath()
