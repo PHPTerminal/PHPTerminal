@@ -207,32 +207,85 @@ abstract class Base
         $this->progress->finish();
     }
 
-    public function inputToArray(array $inputFields, array $inputFieldsData = [])
+    public function inputToArray(array $inputFields, array $inputFieldsOptions = [], array $inputFieldsDefaults = [], array $inputFieldsCurrentValues = [])
     {
+        //Break sequence Esc key
         $outputArr = [];
 
         foreach ($inputFields as $inputField) {
             $inputFieldArr = [];
             $isSecret = false;
 
+            readline_callback_handler_install("", function () {});
             if (str_contains($inputField, '__secret')) {
                 $inputField = str_replace('__secret', '', $inputField);
                 $isSecret = true;
-                readline_callback_handler_install("", function () {});
             }
 
-            \cli\out("%b" . strtoupper($inputField) . (isset($inputFieldsData[$inputField]) ? '%c(' . $inputFieldsData[$inputField] . ')%b' : '') . ' : %w');
+            if (isset($inputFieldsOptions[$inputField])) {
+                $options = $inputFieldsOptions[$inputField];
 
+                \cli\line('%bOPTIONS: %m[' . join(',', $options) . ']%w');
+                \cli\line('');
+            }
+
+            if (isset($inputFieldsDefaults[$inputField])) {
+                \cli\line('%bDEFAULT: %m[' . $inputFieldsDefaults[$inputField] . ']%w');
+                \cli\line('');
+            }
+
+            $initial = true;
             while (true) {
+                if ($initial) {
+                    $initialValue = '';
+                    if (isset($inputFieldsCurrentValues[$inputField])) {
+                        $initialValue = '%c (' . $inputFieldsCurrentValues[$inputField] . ')%b';
+                    } else if (isset($inputFieldsDefaults[$inputField])) {
+                        $initialValue = '%c (' . $inputFieldsDefaults[$inputField] . ')%b';
+                    }
+
+                    \cli\out('%b' . strtoupper($inputField) . $initialValue . ' : %w');
+                }
+
                 $input = stream_get_contents(STDIN, 1);
 
                 if (ord($input) == 10 || ord($input) == 13) {
                     if ($isSecret) {
                         \cli\line("");
                     }
+
+                    $outputArr[$inputField] = join($inputFieldArr);
+
+                    if ($outputArr[$inputField] === '' &&
+                        isset($inputFieldsCurrentValues[$inputField])
+                    ) {
+                        $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                    }
+
+                    if (isset($inputFieldsOptions[$inputField]) && is_array($inputFieldsOptions[$inputField])) {
+                        if ($outputArr[$inputField] !== 'null' &&
+                            !in_array($outputArr[$inputField], $inputFieldsOptions[$inputField])
+                        ) {
+                            \cli\line('%rError: ' . strtoupper($inputField) . ' should only contain one of the options.');
+
+                            $outputArr = [];
+                            $inputFieldArr = [];
+                            $initial = true;
+
+                            continue;
+                        }
+                    }
+
                     break;
-                } else if (ord($input) == 27) {
-                    return [];
+                } else if (ord($input) == 27) {//Escape key pressed
+                    \cli\line('');
+                    \cli\line('');
+                    \cli\line('%rTerminated!%w');
+                    \cli\line('');
+
+                    readline_callback_handler_remove();
+
+                    return false;
                 } else if (ord($input) == 127) {
                     if (count($inputFieldArr) === 0) {
                         continue;
@@ -245,25 +298,18 @@ abstract class Base
 
                     if ($isSecret) {
                         fwrite(STDOUT, '*');
+                    } else {
+                        fwrite(STDOUT, $input);
                     }
+
+                    $initial = false;
                 }
             }
 
-            $outputArr[$inputField] = join($inputFieldArr);
-
-            if ($outputArr[$inputField] === '' &&
-                isset($inputFieldsData[$inputField])
-            ) {
-                $outputArr[$inputField] = $inputFieldsData[$inputField];
-            }
-
-            if ($isSecret) {
-                readline_callback_handler_remove();
-            }
+            readline_callback_handler_remove();
         }
 
         \cli\line("");
-
 
         return $outputArr;
     }
