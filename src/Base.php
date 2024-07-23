@@ -80,13 +80,14 @@ abstract class Base
         if (!$this->config) {
             $this->config = $this->configStore->updateOrInsert(
                 [
-                    'id'            => 1,
-                    'hostname'      => 'phpterminal',
-                    'idleTimeout'   => 3600,//1 Hr. minimum will be 1 min Max will be 3600 1Hr
-                    'historyLimit'  => 2000,//Max 2000 lines
-                    'active_module' => 'base',
-                    'modules'       => [
-                        'base'      => [
+                    'id'                   => 1,
+                    'hostname'              => 'phpterminal',
+                    'idleTimeout'           => 3600,//1 Hr. minimum will be 1 min Max will be 3600 1Hr
+                    'historyLimit'          => 2000,//Max 2000 lines
+                    'active_module'         => 'base',
+                    'command_ignore_chars'  => ['/',' ','-'],
+                    'modules'               => [
+                        'base'              => [
                             'name'          => 'base',
                             'package_name'  => 'phpterminal/phpterminal',
                             'description'   => 'PHP Terminal Base Module',
@@ -113,6 +114,7 @@ abstract class Base
             $this->config['idleTimeout'] = 3600;//1 Hr. minimum will be 1 min Max will be 3600 1Hr
             $this->config['historyLimit'] = 2000;//1 Hr. minimum will be 1 min Max will be 3600 1Hr
             $this->config['active_module'] = 'base';
+            $this->config['command_ignore_chars'] = ['/',' ','-'];
             $this->config['modules']['base']['name'] = 'base';
             $this->config['modules']['base']['package_name'] = 'phpterminal/phpterminal';
             $this->config['modules']['base']['description'] = 'PHP Terminal Base Module';

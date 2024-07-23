@@ -201,7 +201,9 @@ class Enable extends Modules
     {
         $runningConfiguration = $this->terminal->config;
 
-        unset($runningConfiguration['_id']);
+        unset($runningConfiguration['id']);
+
+        $runningConfiguration['command_ignore_chars'] = join(',', $runningConfiguration['command_ignore_chars']);
 
         $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
 

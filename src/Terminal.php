@@ -129,7 +129,11 @@ class Terminal extends Base
                         if (!$this->searchCommand($command)) {
                             echo "Command " . $command . " not found!\n";
                         } else {
-                            if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                            if (count(readline_list_history()) > 0) {
+                                if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                                    readline_add_history($command);
+                                }
+                            } else {
                                 readline_add_history($command);
                             }
                         }
@@ -160,27 +164,43 @@ class Terminal extends Base
                 }
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
                 $this->showHelp();
-            } else if (checkCtype($command, 'alnum', ['/',' ','-','.',':'])) {
+            } else if (checkCtype($command, 'alnum', $this->config['command_ignore_chars'])) {
                 if (!$this->searchCommand($command)) {
                     echo "Command " . $command . " not found!\n";
                 } else {
                     if ($this->filters) {
                         if ($this->displayMode === 'list') {
-                            if (readline_list_history()[array_key_last(readline_list_history())] !== $this->filterCommand . ' > list') {
+                            if (count(readline_list_history()) > 0) {
+                                if (readline_list_history()[array_key_last(readline_list_history())] !== $this->filterCommand . ' > list') {
+                                    readline_add_history($this->filterCommand . ' > list');
+                                }
+                            } else {
                                 readline_add_history($this->filterCommand . ' > list');
                             }
                         } else {
-                            if (readline_list_history()[array_key_last(readline_list_history())] !== $this->filterCommand) {
+                            if (count(readline_list_history()) > 0) {
+                                if (readline_list_history()[array_key_last(readline_list_history())] !== $this->filterCommand) {
+                                    readline_add_history($this->filterCommand);
+                                }
+                            } else {
                                 readline_add_history($this->filterCommand);
                             }
                         }
                     } else {
                         if ($this->displayMode === 'list') {
-                            if (readline_list_history()[array_key_last(readline_list_history())] !== $command . ' > list') {
+                            if (count(readline_list_history()) > 0) {
+                                if (readline_list_history()[array_key_last(readline_list_history())] !== $command . ' > list') {
+                                    readline_add_history($command . ' > list');
+                                }
+                            } else {
                                 readline_add_history($command . ' > list');
                             }
                         } else {
-                            if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                            if (count(readline_list_history()) > 0) {
+                                if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                                    readline_add_history($command);
+                                }
+                            } else {
                                 readline_add_history($command);
                             }
                         }
@@ -306,6 +326,18 @@ class Terminal extends Base
     public function getAccount()
     {
         return $this->account;
+    }
+
+    public function setCommandIgnoreChars(array $chars)
+    {
+        $this->config['command_ignore_chars'] = array_unique(array_merge($this->config['command_ignore_chars'], $chars));
+
+        $this->updateConfig($this->config);
+    }
+
+    public function getCommandIgnoreChars()
+    {
+        return $this->config['command_ignore_chars'];
     }
 
     public function getAllCommands()
