@@ -213,7 +213,7 @@ abstract class Base
         array $inputFieldsDefaults = [],
         array $inputFieldsCurrentValues = [],
         array $inputFieldsRequired = [],
-        int $requiredFieldReenterCount = 3,
+        int $fieldReenterCount = 3,
         bool $showHint = true
     ) {
         if ($showHint) {
@@ -294,26 +294,27 @@ abstract class Base
                     }
 
                     if ($outputArr[$inputField] === '') {
-                        if (count($inputFieldsRequired) > 0 && in_array($inputField, $inputFieldsRequired)) {
-                            if ($inputFieldInputCounter < $requiredFieldReenterCount) {
-                                \cli\line('');
-                                $inputFieldInputCounter++;
+                        if ($inputFieldInputCounter < $fieldReenterCount) {
+                            \cli\line('');
+                            $inputFieldInputCounter++;
 
-                                $outputArr = [];
-                                $inputFieldArr = [];
-                                $initial = true;
+                            $outputArr = [];
+                            $inputFieldArr = [];
+                            $initial = true;
 
-                                continue;
-                            } else {
+                            continue;
+                        } else {
+                            readline_callback_handler_remove();
+
+                            if (count($inputFieldsRequired) > 0 && in_array($inputField, $inputFieldsRequired)) {
                                 \cli\line('');
                                 \cli\line('');
                                 \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be empty. Terminated!%w');
                                 \cli\line('');
 
-                                readline_callback_handler_remove();
-
-                                return false;
                             }
+
+                            return false;
                         }
                     }
 

@@ -55,18 +55,21 @@ class Disable extends Modules
             [],
             [],
             [],
-            [
-                'username', 'password'
-            ],
+            [],
             3,
             false
         );
 
-        if ($credentials) {
+        if ($credentials && is_array($credentials)) {
             [$this->username, $this->password] = [$credentials['username'], $credentials['password']];
 
             return $this->performLogin();
         }
+
+        \cli\line('');
+        $this->terminal->addResponse('Login Incorrect! Try again...', 1);
+
+        return false;
     }
 
     public function getCommands() : array
