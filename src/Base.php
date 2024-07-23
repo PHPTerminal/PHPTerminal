@@ -219,8 +219,8 @@ abstract class Base
         if ($showHint) {
             \cli\line('');
             \cli\line('%bHit Esc key anytime to quit form.');
-            \cli\line('%bHit enter or tab for next field. If previous value is defined, no need to re-enter the value.');
-            \cli\line('%bIf default value is defined, enter few characters and hit tab to autocomplete.');
+            \cli\line('%bHit enter for next field. If previous value is defined, no need to re-enter the value.');
+            \cli\line('%bIf default value is defined, enter few characters and hit tab to autofill and move to next field.');
             \cli\line('%bEnter null to remove previous value.');
             \cli\line('%w');
         }
@@ -280,6 +280,10 @@ abstract class Base
                             $outputArr[$inputField] = $inputFieldsDefaults[$inputField];
 
                             fwrite(STDOUT, $strOutput);
+                        } else {
+                            $initial = false;
+
+                            continue;
                         }
                     }
 
