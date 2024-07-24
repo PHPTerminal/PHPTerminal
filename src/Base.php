@@ -36,6 +36,12 @@ abstract class Base
 
     public $trackTicksCounter;
 
+    protected $microtime = 0;
+
+    protected $memoryusage = 0;
+
+    protected $microTimers = [];
+
     public function __construct($createRoot = false, $dataPath = null)
     {
         if ($dataPath) {
@@ -475,6 +481,11 @@ abstract class Base
         return false;
     }
 
+    public function getMicroTimer()
+    {
+        return $this->microTimers;
+    }
+
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {
@@ -484,5 +495,39 @@ abstract class Base
         }
 
         return true;
+    }
+
+    protected function setMicroTimer($reference, $calculateMemoryUsage = false)
+    {
+        $microtime['reference'] = $reference;
+
+        if ($this->microtime === 0) {
+            $microtime['difference'] = 0;
+            $this->microtime = microtime(true);
+        } else {
+            $now = microtime(true);
+            $microtime['difference'] = $now - $this->microtime;
+            $this->microtime = $now;
+        }
+
+        if ($calculateMemoryUsage) {
+            if ($this->memoryusage === 0) {
+                $microtime['memoryusage'] = 0;
+                $this->memoryusage = memory_get_usage();
+            } else {
+                $currentMemoryUsage = memory_get_usage();
+                $microtime['memoryusage'] = $this->getMemUsage($currentMemoryUsage - $this->memoryusage);
+                $this->memoryusage = $currentMemoryUsage;
+            }
+        }
+
+        array_push($this->microTimers, $microtime);
+    }
+
+    protected function getMemUsage($bytes)
+    {
+        $unit=array('b','kb','mb','gb','tb','pb');
+
+        return @round($bytes/pow(1024,($i=floor(log($bytes,1024)))),2).' '.$unit[$i];
     }
 }
