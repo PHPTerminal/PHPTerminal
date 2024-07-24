@@ -336,8 +336,22 @@ abstract class Base
                                 \cli\line('');
                             }
 
-
                             return false;
+                        }
+                    }
+
+                    if ($outputArr[$inputField] === 'null') {
+                        if (count($inputFieldsRequired) > 0 &&
+                            isset($inputFieldsRequired[$inputField]) &&
+                            $inputFieldsRequired[$inputField] === true
+                        ) {
+                            \cli\line('');
+                            \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be null!%w');
+                            $outputArr = [];
+                            $inputFieldArr = [];
+                            $initial = true;
+
+                            continue;
                         }
                     }
 
