@@ -38,7 +38,8 @@
         "guzzlehttp/guzzle": "^7.8",
         "league/flysystem": "^3.28",
         "rakibtg/sleekdb": "*",
-        "composer/composer": "^2.7"
+        "composer/composer": "^2.7",
+        "seld/signal-handler": "^2.0"
     },
     "autoload":
     {

@@ -30,7 +30,7 @@ class Disable extends Modules
         return $this;
     }
 
-    public function run($args = [], $initial = true)
+    public function enable()
     {
         if (!isset($this->terminal->config['plugins']['auth'])) {
             $this->setEnableMode();
@@ -50,84 +50,26 @@ class Disable extends Modules
             return true;
         }
 
-        $command = [];
+        $credentials = $this->terminal->inputToArray(
+            ['username', 'password__secret'],
+            [],
+            [],
+            [],
+            [],
+            3,
+            false
+        );
 
-        if ($initial) {
-            \cli\line("%r%w");
-            \cli\line("%bEnter username and password\n");
-            \cli\out("%wUsername: ");
-        } else {
-            \cli\out("%wPassword: ");
-        }
-        readline_callback_handler_install("", function () {});
-
-        while (true) {
-            $input = stream_get_contents(STDIN, 1);
-
-            if (ord($input) == 10 || ord($input) == 13) {
-                \cli\line("");
-
-                break;
-            } else if (ord($input) == 127) {
-                if (count($command) === 0) {
-                    continue;
-                }
-                array_pop($command);
-                fwrite(STDOUT, chr(8));
-                fwrite(STDOUT, "\033[0K");
-            } else if (ord($input) == 9) {
-                //Do nothing on tab
-            } else {
-                $command[] = $input;
-                if (!$initial) {
-                    fwrite(STDOUT, '*');
-                } else {
-                    fwrite(STDOUT, $input);
-                }
-            }
-        }
-
-        $command = join($command);
-
-        while (true) {
-            if ($command !== '') {
-                if ($initial) {
-                    $this->username = $command;
-                } else {
-                    $this->password = $command;
-                }
-                if ($this->username && !$this->password) {
-                    $initial = false;
-                } else if (!$this->username && $this->password) {
-                    $initial = true;
-                }
-            } else {
-                if ($initial) {
-                    $this->userPromptCount++;
-                } else {
-                    $this->passPromptCount++;
-                }
-            }
-
-            break;
-        }
-
-        if ($this->username && $this->password) {
-            readline_callback_handler_remove();
+        if ($credentials && is_array($credentials)) {
+            [$this->username, $this->password] = [$credentials['username'], $credentials['password']];
 
             return $this->performLogin();
         }
 
+        \cli\line('');
+        $this->terminal->addResponse('Login Incorrect! Try again...', 1);
 
-        if ($this->userPromptCount >= 3 || $this->passPromptCount >= 3) {
-            readline_callback_handler_remove();
-
-            $this->terminal->addResponse('Login Incorrect! Try again...', 1);
-
-            return true;
-        }
-
-        return $this->run($args, $initial);
+        return false;
     }
 
     public function getCommands() : array
@@ -144,7 +86,7 @@ class Disable extends Modules
                     "availableAt"   => "disable",
                     "command"       => "enable",
                     "description"   => "Enter enable mode",
-                    "function"      => "run"
+                    "function"      => "enable"
                 ]
             ];
     }

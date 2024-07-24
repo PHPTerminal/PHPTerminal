@@ -32,6 +32,10 @@ abstract class Base
 
     protected $dataPath;
 
+    public $trackCounter;
+
+    public $trackTicksCounter;
+
     public function __construct($createRoot = false, $dataPath = null)
     {
         if ($dataPath) {
@@ -80,13 +84,14 @@ abstract class Base
         if (!$this->config) {
             $this->config = $this->configStore->updateOrInsert(
                 [
-                    'id'            => 1,
-                    'hostname'      => 'phpterminal',
-                    'idleTimeout'   => 3600,//1 Hr. minimum will be 1 min Max will be 3600 1Hr
-                    'historyLimit'  => 2000,//Max 2000 lines
-                    'active_module' => 'base',
-                    'modules'       => [
-                        'base'      => [
+                    'id'                   => 1,
+                    'hostname'              => 'phpterminal',
+                    'idleTimeout'           => 3600,//1 Hr. minimum will be 1 min Max will be 3600 1Hr
+                    'historyLimit'          => 2000,//Max 2000 lines
+                    'active_module'         => 'base',
+                    'command_ignore_chars'  => ['/',' ','-'],
+                    'modules'               => [
+                        'base'              => [
                             'name'          => 'base',
                             'package_name'  => 'phpterminal/phpterminal',
                             'description'   => 'PHP Terminal Base Module',
@@ -113,6 +118,7 @@ abstract class Base
             $this->config['idleTimeout'] = 3600;//1 Hr. minimum will be 1 min Max will be 3600 1Hr
             $this->config['historyLimit'] = 2000;//1 Hr. minimum will be 1 min Max will be 3600 1Hr
             $this->config['active_module'] = 'base';
+            $this->config['command_ignore_chars'] = ['/',' ','-'];
             $this->config['modules']['base']['name'] = 'base';
             $this->config['modules']['base']['package_name'] = 'phpterminal/phpterminal';
             $this->config['modules']['base']['description'] = 'PHP Terminal Base Module';
@@ -205,32 +211,172 @@ abstract class Base
         $this->progress->finish();
     }
 
-    public function inputToArray(array $inputFields, array $inputFieldsData = [])
-    {
+    public function inputToArray(
+        array $inputFields,
+        array $inputFieldsOptions = [],
+        array $inputFieldsDefaults = [],
+        array $inputFieldsCurrentValues = [],
+        array $inputFieldsRequired = [],
+        int $fieldReenterCount = 3,
+        bool $showHint = true
+    ) {
+        if ($showHint) {
+            \cli\line('');
+            \cli\line('%bHit Esc+enter key anytime to quit form.');
+            \cli\line('%bHit enter for next field. If previous value is defined, no need to re-enter the value.');
+            \cli\line('%bIf default value is defined, enter few characters and hit tab to autofill and move to next field.');
+            \cli\line('%bEnter null to remove previous value.');
+            \cli\line('%w');
+        }
+
         $outputArr = [];
+        $registerEscape = false;
 
         foreach ($inputFields as $inputField) {
+            \cli\line('');
+            $inputFieldInputCounter = 1;
+
             $inputFieldArr = [];
             $isSecret = false;
 
+            readline_callback_handler_install("", function () {});
             if (str_contains($inputField, '__secret')) {
                 $inputField = str_replace('__secret', '', $inputField);
                 $isSecret = true;
-                readline_callback_handler_install("", function () {});
             }
 
-            \cli\out("%b" . strtoupper($inputField) . (isset($inputFieldsData[$inputField]) ? '%c(' . $inputFieldsData[$inputField] . ')%b' : '') . ' : %w');
+            if (isset($inputFieldsOptions[$inputField])) {
+                $options = $inputFieldsOptions[$inputField];
 
+                \cli\line('%bOPTIONS: %m[' . join(' | ', $options) . ']%w');
+                \cli\line('');
+            }
+
+            if (isset($inputFieldsDefaults[$inputField])) {
+                \cli\line('%bDEFAULT: %m[' . $inputFieldsDefaults[$inputField] . ']%w');
+                \cli\line('');
+            }
+
+            $initial = true;
             while (true) {
+                if ($initial) {
+                    $initialValue = '';
+                    if (isset($inputFieldsCurrentValues[$inputField])) {
+                        $initialValue = '%c (' . $inputFieldsCurrentValues[$inputField] . ')%b';
+                    } else if (isset($inputFieldsDefaults[$inputField])) {
+                        $initialValue = '%c (' . $inputFieldsDefaults[$inputField] . ')%b';
+                    }
+
+                    \cli\out('%b' . strtoupper($inputField) . $initialValue . ' : %w');
+                }
+
                 $input = stream_get_contents(STDIN, 1);
 
-                if (ord($input) == 10 || ord($input) == 13) {
-                    if ($isSecret) {
-                        \cli\line("");
+                if (ord($input) == 10 || ord($input) == 13 || ord($input) == 9) {//Hit enter or tab key
+                    if ($registerEscape) {
+                        \cli\line('');
+                        \cli\line('');
+                        \cli\line('%rTerminated!%w');
+                        \cli\line('');
+
+                        readline_callback_handler_remove();
+
+                        return false;
+                    } else {
+                        $registerEscape = false;
                     }
+
+                    $outputArr[$inputField] = join($inputFieldArr);
+
+                    if (ord($input) == 9) {
+                        if (isset($inputFieldsDefaults[$inputField]) &&
+                            $outputArr[$inputField] !== '' &&
+                            str_starts_with($inputFieldsDefaults[$inputField], $outputArr[$inputField])
+                        ) {
+                            $strOutput = str_replace($outputArr[$inputField], '', $inputFieldsDefaults[$inputField]);
+
+                            $outputArr[$inputField] = $inputFieldsDefaults[$inputField];
+
+                            fwrite(STDOUT, $strOutput);
+                        } else {
+                            $initial = false;
+
+                            continue;
+                        }
+                    }
+
+                    if ($outputArr[$inputField] === '' &&
+                        isset($inputFieldsCurrentValues[$inputField])
+                    ) {
+                        $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                    }
+
+                    if ($outputArr[$inputField] === '') {
+                        if ($inputFieldInputCounter < $fieldReenterCount) {
+                            \cli\line('');
+                            $inputFieldInputCounter++;
+
+                            $outputArr = [];
+                            $inputFieldArr = [];
+                            $initial = true;
+
+                            continue;
+                        } else {
+                            readline_callback_handler_remove();
+
+                            \cli\line('');
+
+                            if (count($inputFieldsRequired) > 0 && in_array($inputField, $inputFieldsRequired)) {
+                                \cli\line('');
+                                \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be empty. Terminated!%w');
+                                \cli\line('');
+                            } else {
+                                \cli\line('');
+                                \cli\line('%rMax re-enter counter reached. Terminated!%w');
+                                \cli\line('');
+                            }
+
+                            return false;
+                        }
+                    }
+
+                    if ($outputArr[$inputField] === 'null') {
+                        if (count($inputFieldsRequired) > 0 &&
+                            isset($inputFieldsRequired[$inputField]) &&
+                            $inputFieldsRequired[$inputField] === true
+                        ) {
+                            \cli\line('');
+                            \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be null!%w');
+                            $outputArr = [];
+                            $inputFieldArr = [];
+                            $initial = true;
+
+                            continue;
+                        }
+                    }
+
+                    if (isset($inputFieldsOptions[$inputField]) && is_array($inputFieldsOptions[$inputField])) {
+                        if ($outputArr[$inputField] !== 'null' &&
+                            !in_array($outputArr[$inputField], $inputFieldsOptions[$inputField])
+                        ) {
+                            \cli\line('');
+                            \cli\line('%rError: ' . strtoupper($inputField) . ' should only contain one of the options. HINT: input is case sensitive.');
+
+                            $outputArr = [];
+                            $inputFieldArr = [];
+                            $initial = true;
+
+                            continue;
+                        }
+                    }
+
                     break;
-                } else if (ord($input) == 27) {
-                    return [];
+                } else if (ord($input) == 27) {//Escape key pressed
+                    $registerEscape = true;
+
+                    $initial = false;
+
+                    continue;
                 } else if (ord($input) == 127) {
                     if (count($inputFieldArr) === 0) {
                         continue;
@@ -238,32 +384,95 @@ abstract class Base
                     array_pop($inputFieldArr);
                     fwrite(STDOUT, chr(8));
                     fwrite(STDOUT, "\033[0K");
+                    $registerEscape = false;
                 } else {
                     $inputFieldArr[] = $input;
 
                     if ($isSecret) {
                         fwrite(STDOUT, '*');
+                    } else {
+                        fwrite(STDOUT, $input);
                     }
+
+                    $initial = false;
+                    $registerEscape = false;
                 }
             }
 
-            $outputArr[$inputField] = join($inputFieldArr);
-
-            if ($outputArr[$inputField] === '' &&
-                isset($inputFieldsData[$inputField])
-            ) {
-                $outputArr[$inputField] = $inputFieldsData[$inputField];
-            }
-
-            if ($isSecret) {
-                readline_callback_handler_remove();
-            }
+            readline_callback_handler_remove();
         }
 
         \cli\line("");
 
-
         return $outputArr;
+    }
+
+    public function downloadData($url, $sink)
+    {
+        $this->trackCounter = 0;
+        $this->trackTicksCounter = 0;
+
+        $download = $this->remoteWebContent->request(
+            'GET',
+            $url,
+            [
+                'progress' => function(
+                    $downloadTotal,
+                    $downloadedBytes,
+                    $uploadTotal,
+                    $uploadedBytes
+                ) {
+                    if ($downloadTotal === 0 || $downloadedBytes === 0) {
+                        return;
+                    }
+
+                    //Trackcounter is needed as guzzelhttp runs this in a while loop causing too many updates with same download count.
+                    //So this way, we only update progress when there is actually an update.
+                    if ($downloadedBytes === $this->trackCounter) {
+                        return;
+                    }
+
+                    $this->trackCounter = $downloadedBytes;
+
+                    if (!$this->progress) {
+                        $this->newProgress(100);
+                    }
+
+                    if ($downloadedBytes === $downloadTotal) {
+                        if ($this->progress) {
+                            $this->updateProgress('Downloading file ' . '... (' . $downloadTotal . '/' . $downloadTotal . ')');
+
+                            $this->finishProgress();
+
+                            $this->progress = null;
+                        }
+                    } else {
+                        $downloadPercentTicks = (int) (($downloadedBytes * 100) / $downloadTotal);
+
+                        if ($downloadPercentTicks > $this->trackTicksCounter) {
+                            $this->trackTicksCounter = $downloadPercentTicks;
+
+                            $this->updateProgress('Downloading file ' . '... (' . $downloadedBytes . '/' . $downloadTotal . ')');
+                        }
+                    }
+                },
+                'verify'            => false,
+                'connect_timeout'   => 5,
+                'timeout'           => 360,
+                'sink'              => $sink
+            ]
+        );
+
+
+        if ($download->getStatusCode() === 200) {
+            $this->addResponse('Download file from URL: ' . $url);
+
+            return $download;
+        }
+
+        $this->addResponse('Download resulted in : ' . $download->getStatusCode(), 1);
+
+        return false;
     }
 
     protected function checkTerminalPath()

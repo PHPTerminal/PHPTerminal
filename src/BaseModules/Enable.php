@@ -145,7 +145,15 @@ class Enable extends Modules
                     $history = array_slice($history, (count($history) - $args[0]), $args[0], true);
                 }
 
-                $this->terminal->addResponse('History limit is set to ' . $this->terminal->config['historyLimit'], 0, ['history' => $history]);
+                $showSearch = 'Showing';
+                if ($this->terminal->getFilters()) {
+                    $showSearch = 'Searching';
+                }
+                $this->terminal->addResponse(
+                    'History limit is set to ' . $this->terminal->config['historyLimit'] . PHP_EOL . $showSearch . ' last ' . $args[0] . ' entries...',
+                    4,
+                    ['history' => $history]
+                );
 
                 return true;
             }
@@ -194,6 +202,8 @@ class Enable extends Modules
         $runningConfiguration = $this->terminal->config;
 
         unset($runningConfiguration['id']);
+
+        $runningConfiguration['command_ignore_chars'] = join(',', $runningConfiguration['command_ignore_chars']);
 
         $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
 
