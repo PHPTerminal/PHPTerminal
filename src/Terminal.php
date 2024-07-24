@@ -126,7 +126,15 @@ class Terminal extends Base
                     $this->extractAllCommands(true, false, false);
 
                     if (str_contains($command, '?')) {
-                        $this->showHelp();
+                        if ($this->showHelp($command)) {
+                            if (count(readline_list_history()) > 0) {
+                                if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                                    readline_add_history($command);
+                                }
+                            } else {
+                                readline_add_history($command);
+                            }
+                        }
                     } else {
                         if (!$this->searchCommand($command)) {
                             echo "Command " . $command . " not found!\n";
@@ -165,7 +173,15 @@ class Terminal extends Base
                     }
                 }
             } else if (str_contains($command, '?') || $command === '?' || $command === 'help') {
-                $this->showHelp();
+                if ($this->showHelp($command)) {
+                    if (count(readline_list_history()) > 0) {
+                        if (readline_list_history()[array_key_last(readline_list_history())] !== $command) {
+                            readline_add_history($command);
+                        }
+                    } else {
+                        readline_add_history($command);
+                    }
+                }
             } else if (checkCtype($command, 'alnum', $this->config['command_ignore_chars'])) {
                 if (!$this->searchCommand($command)) {
                     echo "Command " . $command . " not found!\n";
@@ -596,20 +612,52 @@ class Terminal extends Base
         }
     }
 
-    protected function showHelp()
+    protected function showHelp($command = null)
     {
+        if ($command) {
+            if ($command !== '?' &&
+                $command !== 'help'
+            ) {
+                $commandArr = explode('?', trim($command));
+
+                if (count($commandArr) > 0) {
+                    $command = trim($commandArr[0]);
+                }
+            } else {
+                $command = null;
+            }
+
+            $foundCommands = false;
+        }
+
         if (isset($this->helpList[$this->whereAt]) &&
             count($this->helpList[$this->whereAt]) > 0
         ) {
             \cli\line('');
+            \cli\line('%bHINT: Enter few characters of a command and hit the tab key for command autocompletion.%w');
+            \cli\line('%bHINT: To search all commands that start with a word(s), enter word(s) followed by ?. If word is correct, only commands starting with that word will be shown.%w');
+            \cli\line('');
 
             foreach ($this->helpList[$this->whereAt] as $moduleName => $moduleCommands) {
+                //This will search for specific module commands
+                //? | grep base - will only show base module commands.
                 if (isset($this->filters['values']) &&
                     count($this->filters['values']) > 0 &&
                     isset($this->helpList[$this->whereAt][strtolower($this->filters['values'][0])]) &&
                     strtolower($this->filters['values'][0]) !== $moduleName
                 ) {
                     continue;
+                }
+
+                //This will search for commands that start with command,
+                //show ? <enter_key> will show all commands that start with show in all modules
+                //show ? | grep base <enter_key> - will only show base module commands that start with show.
+                if ($command) {
+                    foreach ($moduleCommands as $moduleCommandKey => $moduleCommand) {
+                        if (!str_starts_with($moduleCommand[0], $command)) {
+                            unset($moduleCommands[$moduleCommandKey]);
+                        }
+                    }
                 }
 
                 \cli\line("%y" . strtoupper($moduleName) . " MODULE COMMANDS%w");
@@ -621,10 +669,21 @@ class Terminal extends Base
                         $moduleCommand[1] = '';
                     }
                 }
-                $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([30, 125]));
-                $table->display();
-                \cli\line('%w');
+                if (count($moduleCommands) > 0)  {
+                    $table->setRows($moduleCommands);
+                    $table->setRenderer(new \cli\table\Ascii([30, 125]));
+                    $table->display();
+                    \cli\line('%w');
+                    if ($command) {
+                        $foundCommands = true;
+                    }
+                } else {
+                    if ($command) {
+                        \cli\line('%w');
+                        \cli\line('%rNo commands starting with ' . $command. ' in ' . $moduleName . ' module commands%w');
+                        \cli\line('%w');
+                    }
+                }
             }
 
             if (isset($this->filters['values']) &&
@@ -635,6 +694,14 @@ class Terminal extends Base
             }
 
             foreach ($this->helpList['global'] as $moduleName => $moduleCommands) {
+                if ($command) {
+                    foreach ($moduleCommands as $moduleCommandKey => $moduleCommand) {
+                        if (!str_starts_with($moduleCommand[0], $command)) {
+                            unset($moduleCommands[$moduleCommandKey]);
+                        }
+                    }
+                }
+
                 \cli\line("%yGLOBAL COMMANDS%w");
                 $table = new \cli\Table();
                 $table->setHeaders(['AVAILABLE COMMANDS', 'DESCRIPTION']);
@@ -644,12 +711,32 @@ class Terminal extends Base
                         $moduleCommand[1] = '';
                     }
                 }
-                $table->setRows($moduleCommands);
-                $table->setRenderer(new \cli\table\Ascii([30, 125]));
-                $table->display();
-                \cli\line('%w');
+                if (count($moduleCommands) > 0)  {
+                    $table->setRows($moduleCommands);
+                    $table->setRenderer(new \cli\table\Ascii([30, 125]));
+                    $table->display();
+                    \cli\line('%w');
+
+                    if ($command) {
+                        $foundCommands = true;
+                    }
+                } else {
+                    if ($command) {
+                        \cli\line('%w');
+                        \cli\line('%rNo commands starting with ' . $command. ' in global commands.%w');
+                        \cli\line('%w');
+                    }
+                }
             }
+        } else {
+            \cli\line('%yNo Help available for this mode!%w');
         }
+
+        if (isset($foundCommands) && $foundCommands === true) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function searchCommand($command)
