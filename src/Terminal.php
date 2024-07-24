@@ -44,6 +44,8 @@ class Terminal extends Base
 
     protected $displayMode = 'table';
 
+    public $signal;
+
     public function __construct($dataPath = null)
     {
         parent::__construct(false, $dataPath);
@@ -80,7 +82,7 @@ class Terminal extends Base
 
         $this->updateAutoComplete();
 
-        $signal = SignalHandler::create();
+        $this->signal = SignalHandler::create();
 
         if ($terminated) {
             $command = readline();
@@ -89,7 +91,7 @@ class Terminal extends Base
         }
 
         while (true) {
-            if ($signal->isTriggered()) {
+            if ($this->signal->isTriggered()) {
                \cli\line('');
             }
 
