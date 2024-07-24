@@ -24,3 +24,6 @@ Time is valuable. If you feel this project has been helpful and it has saved you
 
 <h2>Hire me:</h2>
 If you would like to develop a PHP application that requires expert level programming. I am available for hire. Message me and we can discuss further.
+
+<h2>Repo Activity:</h2>
+![Alt](https://repobeats.axiom.co/api/embed/72f3bb7520b2cb05c81a755d2042628e1ce2953b.svg "Repobeats analytics image")
