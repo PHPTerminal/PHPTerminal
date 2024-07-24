@@ -249,6 +249,8 @@ class ConfigTerminal extends Modules
                         }
 
                         if (!$found) {//If package was uninstalled
+                            \cli\line('%yRemoving plugin ' . $plugin['package_name'] . '...%w');
+
                             unset($this->terminal->config['plugins'][$pluginKey]);
                         }
                     }
@@ -275,6 +277,8 @@ class ConfigTerminal extends Modules
                         }
 
                         if (!$found && $module['name'] !== 'base') {//If package was uninstalled. We never uninstall base.
+                            \cli\line('%yRemoving module ' . $module['package_name'] . '...%w');
+
                             unset($this->terminal->config['modules'][$moduleKey]);
                         }
                     }

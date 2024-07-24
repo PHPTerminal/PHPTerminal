@@ -142,11 +142,18 @@ abstract class Base
         }
     }
 
+    public function getConfig()
+    {
+        return $this->configStore->findById(1);
+    }
+
     public function updateConfig($config)
     {
         $this->config = array_replace($this->config, $config);
 
         $this->configStore->update($this->config);
+
+        $this->config = $this->getConfig();
     }
 
     public function setLocalContent($createRoot = false, $dataPath = null)
@@ -486,6 +493,55 @@ abstract class Base
         return $this->microTimers;
     }
 
+    public function setActiveModule()
+    {
+        if (isset($this->config['active_module'])) {
+            $this->module = strtolower($this->config['active_module']);
+        }
+    }
+
+    public function resetLastAccessTime()
+    {
+        $this->updateConfig(['lastAccessAt' => time()]);
+    }
+
+    public function setIdleTimeout($timeout = 3600)
+    {
+        if ($timeout < 60) {
+            $timeout = 60;
+        }
+
+        if ($timeout > 3600) {
+            $timeout = 3600;
+        }
+
+        $this->config['idleTimeout'] = (int) $timeout;
+
+        $this->updateConfig(['idleTimeout' => (int) $timeout]);
+    }
+
+    public function setHistoryLimit($limit = 2000)
+    {
+        if ($limit > 2000) {
+            $limit = 2000;
+        }
+
+        $this->config['historyLimit'] = (int) $limit;
+
+        $this->updateConfig(['historyLimit' => (int) $limit]);
+    }
+
+    public function setCommandIgnoreChars(array $chars)
+    {
+        $this->config['command_ignore_chars'] = array_unique(array_merge($this->config['command_ignore_chars'], $chars));
+
+        $this->updateConfig($this->config);
+    }
+
+    public function getCommandIgnoreChars()
+    {
+        return $this->config['command_ignore_chars'];
+    }
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {

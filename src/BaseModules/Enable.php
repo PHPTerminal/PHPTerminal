@@ -199,13 +199,13 @@ class Enable extends Modules
 
     protected function showRun()
     {
-        $runningConfiguration = $this->terminal->config;
+        $savedConfiguration = $this->terminal->getConfig();
 
-        unset($runningConfiguration['id']);
+        unset($savedConfiguration['id']);
 
-        $runningConfiguration['command_ignore_chars'] = join(',', $runningConfiguration['command_ignore_chars']);
+        $savedConfiguration['command_ignore_chars'] = join(',', $savedConfiguration['command_ignore_chars']);
 
-        $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
+        $this->terminal->addResponse('', 0, ['Running Configuration' => $savedConfiguration]);
 
         return true;
     }
