@@ -589,6 +589,14 @@ class ConfigTerminal extends Modules
             return false;
         }
 
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+            \cli\line("");
+            \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
+            \cli\line("");
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bInstalling $type...%w");
         \cli\line("");
@@ -625,6 +633,14 @@ class ConfigTerminal extends Modules
             return false;
         }
 
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+            \cli\line("");
+            \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
+            \cli\line("");
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bUpgrading $type...%w");
         \cli\line("");
@@ -652,6 +668,14 @@ class ConfigTerminal extends Modules
 
         if (strtolower($args[0]) === 'phpterminal/phpterminal') {
             $this->terminal->addResponse('Can not remove base module!', 1);
+
+            return false;
+        }
+
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+            \cli\line("");
+            \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
+            \cli\line("");
 
             return false;
         }
