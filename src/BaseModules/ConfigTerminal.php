@@ -30,6 +30,7 @@ class ConfigTerminal extends Modules
                     "command"       => "do",
                     "description"   => "Run enable mode commands in config mode. Example: do show run, will show running configuration from config mode. do ? will show list of enable mode commands.",
                     "function"      => "",
+                    "availableIn"   => "all"
                 ],
                 [
                     "availableAt"   => "config",
@@ -63,7 +64,8 @@ class ConfigTerminal extends Modules
                     "availableAt"   => "config",
                     "command"       => "switch module",
                     "description"   => "switch module {module_name}. Switch terminal module.",
-                    "function"      => "switch"
+                    "function"      => "switch",
+                    "availableIn"   => "all"
                 ]
             );
         }

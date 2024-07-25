@@ -392,6 +392,12 @@ class Terminal extends Base
 
         foreach ($this->modules as $moduleClass => $modulesArr) {
             foreach ($modulesArr as $module) {
+                if ($this->module !== 'base' &&
+                    $module['module_name'] === 'base' &&
+                    !isset($module['availableIn'])
+                ) {
+                    continue;
+                }
                 if ($autoCompleteList) {
                     if (!isset($this->autoCompleteList[$module['availableAt']])) {
                         $this->autoCompleteList[$module['availableAt']] = [];
@@ -431,8 +437,6 @@ class Terminal extends Base
                             array_push($this->autoCompleteList['config'], 'do ' . $enableCommand);
                         }
                     }
-                } else {
-
                 }
             }
         }
@@ -621,7 +625,7 @@ class Terminal extends Base
                 }
                 if (count($moduleCommands) > 0)  {
                     $table->setRows($moduleCommands);
-                    $table->setRenderer(new \cli\table\Ascii([30, 125]));
+                    $table->setRenderer(new \cli\table\Ascii([50, 125]));
                     $table->display();
                     \cli\line('%w');
                     if ($command) {
@@ -663,7 +667,7 @@ class Terminal extends Base
                 }
                 if (count($moduleCommands) > 0)  {
                     $table->setRows($moduleCommands);
-                    $table->setRenderer(new \cli\table\Ascii([30, 125]));
+                    $table->setRenderer(new \cli\table\Ascii([50, 125]));
                     $table->display();
                     \cli\line('%w');
 
