@@ -28,7 +28,8 @@ class Enable extends Modules
                     "availableAt"   => "enable",
                     "command"       => "",
                     "description"   => "General commands",
-                    "function"      => ""
+                    "function"      => "",
+                    "availableIn"   => "all"
                 ]
             ];
 
@@ -38,13 +39,15 @@ class Enable extends Modules
                     "availableAt"   => "enable",
                     "command"       => "show history",
                     "description"   => "Show history {number_of_last_commands}. show history 10, will show last 10 history commands. 20 is default value.",
-                    "function"      => "show"
+                    "function"      => "show",
+                    "availableIn"   => "all"
                 ],
                 [
                     "availableAt"   => "enable",
                     "command"       => "clear history",
                     "description"   => "Clear terminal history",
-                    "function"      => "clearHistory"
+                    "function"      => "clearHistory",
+                    "availableIn"   => "all"
                 ]
             );
         }
@@ -54,7 +57,8 @@ class Enable extends Modules
                 "availableAt"   => "enable",
                 "command"       => "config terminal",
                 "description"   => "Configure terminal Settings",
-                "function"      => "configTerminal"
+                "function"      => "configTerminal",
+                "availableIn"   => "all"
             ],
             [
                 "availableAt"   => "enable",
@@ -199,13 +203,13 @@ class Enable extends Modules
 
     protected function showRun()
     {
-        $runningConfiguration = $this->terminal->config;
+        $savedConfiguration = $this->terminal->getConfig();
 
-        unset($runningConfiguration['id']);
+        unset($savedConfiguration['id']);
 
-        $runningConfiguration['command_ignore_chars'] = join(',', $runningConfiguration['command_ignore_chars']);
+        $savedConfiguration['command_ignore_chars'] = join(',', $savedConfiguration['command_ignore_chars']);
 
-        $this->terminal->addResponse('', 0, ['Running Configuration' => $runningConfiguration]);
+        $this->terminal->addResponse('', 0, ['Running Configuration' => $savedConfiguration]);
 
         return true;
     }

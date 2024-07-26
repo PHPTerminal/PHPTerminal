@@ -80,13 +80,15 @@ class Disable extends Modules
                     "availableAt"   => "disable",
                     "command"       => "",
                     "description"   => "General commands",
-                    "function"      => ""
+                    "function"      => "",
+                    "availableIn"   => 'all'
                 ],
                 [
                     "availableAt"   => "disable",
                     "command"       => "enable",
                     "description"   => "Enter enable mode",
-                    "function"      => "enable"
+                    "function"      => "enable",
+                    "availableIn"   => 'all'
                 ]
             ];
     }

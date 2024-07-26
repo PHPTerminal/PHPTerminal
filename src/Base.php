@@ -36,6 +36,12 @@ abstract class Base
 
     public $trackTicksCounter;
 
+    protected $microtime = 0;
+
+    protected $memoryusage = 0;
+
+    protected $microTimers = [];
+
     public function __construct($createRoot = false, $dataPath = null)
     {
         if ($dataPath) {
@@ -136,11 +142,18 @@ abstract class Base
         }
     }
 
+    public function getConfig()
+    {
+        return $this->configStore->findById(1);
+    }
+
     public function updateConfig($config)
     {
         $this->config = array_replace($this->config, $config);
 
         $this->configStore->update($this->config);
+
+        $this->config = $this->getConfig();
     }
 
     public function setLocalContent($createRoot = false, $dataPath = null)
@@ -475,6 +488,60 @@ abstract class Base
         return false;
     }
 
+    public function getMicroTimer()
+    {
+        return $this->microTimers;
+    }
+
+    public function setActiveModule()
+    {
+        if (isset($this->config['active_module'])) {
+            $this->module = strtolower($this->config['active_module']);
+        }
+    }
+
+    public function resetLastAccessTime()
+    {
+        $this->updateConfig(['lastAccessAt' => time()]);
+    }
+
+    public function setIdleTimeout($timeout = 3600)
+    {
+        if ($timeout < 60) {
+            $timeout = 60;
+        }
+
+        if ($timeout > 3600) {
+            $timeout = 3600;
+        }
+
+        $this->config['idleTimeout'] = (int) $timeout;
+
+        $this->updateConfig(['idleTimeout' => (int) $timeout]);
+    }
+
+    public function setHistoryLimit($limit = 2000)
+    {
+        if ($limit > 2000) {
+            $limit = 2000;
+        }
+
+        $this->config['historyLimit'] = (int) $limit;
+
+        $this->updateConfig(['historyLimit' => (int) $limit]);
+    }
+
+    public function setCommandIgnoreChars(array $chars)
+    {
+        $this->config['command_ignore_chars'] = array_unique(array_merge($this->config['command_ignore_chars'], $chars));
+
+        $this->updateConfig($this->config);
+    }
+
+    public function getCommandIgnoreChars()
+    {
+        return $this->config['command_ignore_chars'];
+    }
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {
@@ -484,5 +551,39 @@ abstract class Base
         }
 
         return true;
+    }
+
+    protected function setMicroTimer($reference, $calculateMemoryUsage = false)
+    {
+        $microtime['reference'] = $reference;
+
+        if ($this->microtime === 0) {
+            $microtime['difference'] = 0;
+            $this->microtime = microtime(true);
+        } else {
+            $now = microtime(true);
+            $microtime['difference'] = $now - $this->microtime;
+            $this->microtime = $now;
+        }
+
+        if ($calculateMemoryUsage) {
+            if ($this->memoryusage === 0) {
+                $microtime['memoryusage'] = 0;
+                $this->memoryusage = memory_get_usage();
+            } else {
+                $currentMemoryUsage = memory_get_usage();
+                $microtime['memoryusage'] = $this->getMemUsage($currentMemoryUsage - $this->memoryusage);
+                $this->memoryusage = $currentMemoryUsage;
+            }
+        }
+
+        array_push($this->microTimers, $microtime);
+    }
+
+    protected function getMemUsage($bytes)
+    {
+        $unit=array('b','kb','mb','gb','tb','pb');
+
+        return @round($bytes/pow(1024,($i=floor(log($bytes,1024)))),2).' '.$unit[$i];
     }
 }

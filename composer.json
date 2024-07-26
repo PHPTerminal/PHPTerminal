@@ -39,7 +39,8 @@
         "league/flysystem": "^3.28",
         "rakibtg/sleekdb": "*",
         "composer/composer": "^2.7",
-        "seld/signal-handler": "^2.0"
+        "seld/signal-handler": "^2.0",
+        "jasongrimes/paginator": "~1.0"
     },
     "autoload":
     {

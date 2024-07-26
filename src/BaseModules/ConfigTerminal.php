@@ -30,6 +30,7 @@ class ConfigTerminal extends Modules
                     "command"       => "do",
                     "description"   => "Run enable mode commands in config mode. Example: do show run, will show running configuration from config mode. do ? will show list of enable mode commands.",
                     "function"      => "",
+                    "availableIn"   => "all"
                 ],
                 [
                     "availableAt"   => "config",
@@ -63,7 +64,8 @@ class ConfigTerminal extends Modules
                     "availableAt"   => "config",
                     "command"       => "switch module",
                     "description"   => "switch module {module_name}. Switch terminal module.",
-                    "function"      => "switch"
+                    "function"      => "switch",
+                    "availableIn"   => "all"
                 ]
             );
         }
@@ -249,6 +251,8 @@ class ConfigTerminal extends Modules
                         }
 
                         if (!$found) {//If package was uninstalled
+                            \cli\line('%yRemoving plugin ' . $plugin['package_name'] . '...%w');
+
                             unset($this->terminal->config['plugins'][$pluginKey]);
                         }
                     }
@@ -275,6 +279,8 @@ class ConfigTerminal extends Modules
                         }
 
                         if (!$found && $module['name'] !== 'base') {//If package was uninstalled. We never uninstall base.
+                            \cli\line('%yRemoving module ' . $module['package_name'] . '...%w');
+
                             unset($this->terminal->config['modules'][$moduleKey]);
                         }
                     }
@@ -519,6 +525,7 @@ class ConfigTerminal extends Modules
         $module = strtolower($args[0]);
 
         if (isset($this->terminal->config['modules'][$module])) {
+            (new $this->terminal->config['plugins'][$module]['class'])->init($this->terminal)->onActive();
             $this->terminal->updateConfig(['active_module' => $module]);
             $this->terminal->setActiveModule($module);
             $this->terminal->getAllCommands();
@@ -585,6 +592,14 @@ class ConfigTerminal extends Modules
             return false;
         }
 
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+            \cli\line("");
+            \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
+            \cli\line("");
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bInstalling $type...%w");
         \cli\line("");
@@ -621,6 +636,14 @@ class ConfigTerminal extends Modules
             return false;
         }
 
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+            \cli\line("");
+            \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
+            \cli\line("");
+
+            return false;
+        }
+
         \cli\line("");
         \cli\line("%bUpgrading $type...%w");
         \cli\line("");
@@ -648,6 +671,14 @@ class ConfigTerminal extends Modules
 
         if (strtolower($args[0]) === 'phpterminal/phpterminal') {
             $this->terminal->addResponse('Can not remove base module!', 1);
+
+            return false;
+        }
+
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+            \cli\line("");
+            \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
+            \cli\line("");
 
             return false;
         }

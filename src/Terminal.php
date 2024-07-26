@@ -99,15 +99,22 @@ class Terminal extends Base
 
             $this->filters = null;
 
-            if (str_contains($command, '> list')) {
+            if (str_contains($command, '> list') || str_contains($command, '>list')) {
                 $this->displayMode = 'list';
 
-                $commandArr = explode('> list', $command);
+                if (str_contains($command, '> list')) {
+                    $commandArr = explode('> list', $command);
+                }
+                if (str_contains($command, '>list')) {
+                    $commandArr = explode('>list', $command);
+                }
 
                 $command = trim($commandArr[0]);
             }
 
-            if (str_contains($command, '| grep') || str_contains($command, '| grepkey')) {
+            if (str_contains($command, '| grep') || str_contains($command, '| grepkey') ||
+                str_contains($command, '|grep') || str_contains($command, '|grepkey')
+            ) {
                 $this->filterCommand = $command;
 
                 $commandArr = explode('|', $command);
@@ -151,6 +158,8 @@ class Terminal extends Base
 
                     $this->whereAt = 'config';
                     $this->extractAllCommands(true, false, false);
+                } else {
+                    echo "do commands only work in config terminal mode!\n";
                 }
             } else if ($command === 'clear') {
                 system('clear');
@@ -241,13 +250,6 @@ class Terminal extends Base
         return $this->filters;
     }
 
-    public function setActiveModule()
-    {
-        if (isset($this->config['active_module'])) {
-            $this->module = strtolower($this->config['active_module']);
-        }
-    }
-
     public function setHostname()
     {
         $hostname = ($this->account ? $this->account['username'] . '@' : '') . $this->config['hostname'];
@@ -285,37 +287,6 @@ class Terminal extends Base
         return $this->whereAt;
     }
 
-    public function resetLastAccessTime()
-    {
-        $this->updateConfig(['lastAccessAt' => time()]);
-    }
-
-    public function setIdleTimeout($timeout = 3600)
-    {
-        if ($timeout < 60) {
-            $timeout = 60;
-        }
-
-        if ($timeout > 3600) {
-            $timeout = 3600;
-        }
-
-        $this->config['idleTimeout'] = (int) $timeout;
-
-        $this->updateConfig(['idleTimeout' => (int) $timeout]);
-    }
-
-    public function setHistoryLimit($limit = 2000)
-    {
-        if ($limit > 2000) {
-            $limit = 2000;
-        }
-
-        $this->config['historyLimit'] = (int) $limit;
-
-        $this->updateConfig(['historyLimit' => (int) $limit]);
-    }
-
     public function setPrompt($prompt)
     {
         $this->prompt = $prompt;
@@ -344,18 +315,6 @@ class Terminal extends Base
     public function getAccount()
     {
         return $this->account;
-    }
-
-    public function setCommandIgnoreChars(array $chars)
-    {
-        $this->config['command_ignore_chars'] = array_unique(array_merge($this->config['command_ignore_chars'], $chars));
-
-        $this->updateConfig($this->config);
-    }
-
-    public function getCommandIgnoreChars()
-    {
-        return $this->config['command_ignore_chars'];
     }
 
     public function getAllCommands()
@@ -442,6 +401,12 @@ class Terminal extends Base
 
         foreach ($this->modules as $moduleClass => $modulesArr) {
             foreach ($modulesArr as $module) {
+                if ($this->module !== 'base' &&
+                    $module['module_name'] === 'base' &&
+                    !isset($module['availableIn'])
+                ) {
+                    continue;
+                }
                 if ($autoCompleteList) {
                     if (!isset($this->autoCompleteList[$module['availableAt']])) {
                         $this->autoCompleteList[$module['availableAt']] = [];
@@ -481,8 +446,6 @@ class Terminal extends Base
                             array_push($this->autoCompleteList['config'], 'do ' . $enableCommand);
                         }
                     }
-                } else {
-
                 }
             }
         }
@@ -671,7 +634,7 @@ class Terminal extends Base
                 }
                 if (count($moduleCommands) > 0)  {
                     $table->setRows($moduleCommands);
-                    $table->setRenderer(new \cli\table\Ascii([30, 125]));
+                    $table->setRenderer(new \cli\table\Ascii([50, 125]));
                     $table->display();
                     \cli\line('%w');
                     if ($command) {
@@ -713,7 +676,7 @@ class Terminal extends Base
                 }
                 if (count($moduleCommands) > 0)  {
                     $table->setRows($moduleCommands);
-                    $table->setRenderer(new \cli\table\Ascii([30, 125]));
+                    $table->setRenderer(new \cli\table\Ascii([50, 125]));
                     $table->display();
                     \cli\line('%w');
 
