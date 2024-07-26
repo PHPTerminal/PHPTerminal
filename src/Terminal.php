@@ -99,15 +99,22 @@ class Terminal extends Base
 
             $this->filters = null;
 
-            if (str_contains($command, '> list')) {
+            if (str_contains($command, '> list') || str_contains($command, '>list')) {
                 $this->displayMode = 'list';
 
-                $commandArr = explode('> list', $command);
+                if (str_contains($command, '> list')) {
+                    $commandArr = explode('> list', $command);
+                }
+                if (str_contains($command, '>list')) {
+                    $commandArr = explode('>list', $command);
+                }
 
                 $command = trim($commandArr[0]);
             }
 
-            if (str_contains($command, '| grep') || str_contains($command, '| grepkey')) {
+            if (str_contains($command, '| grep') || str_contains($command, '| grepkey') ||
+                str_contains($command, '|grep') || str_contains($command, '|grepkey')
+            ) {
                 $this->filterCommand = $command;
 
                 $commandArr = explode('|', $command);
