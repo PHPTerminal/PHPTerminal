@@ -12,7 +12,5 @@ interface ModulesInterface
 
     public function onUninstall() : object;//return $this
 
-    public function onActive() : object;//return $this
-
     public function getCommands() : array;
 }
