@@ -591,7 +591,7 @@ class ConfigTerminal extends Modules
             return false;
         }
 
-        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . 's-')) {
             \cli\line("");
             \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
             \cli\line("");
@@ -635,7 +635,7 @@ class ConfigTerminal extends Modules
             return false;
         }
 
-        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . 's-')) {
             \cli\line("");
             \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
             \cli\line("");
@@ -674,7 +674,7 @@ class ConfigTerminal extends Modules
             return false;
         }
 
-        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . '-')) {
+        if (!str_contains(strtolower($args[0]), 'phpterminal-' . $type . 's-')) {
             \cli\line("");
             \cli\line('%rPackage ' . $args[0] . ' is not a valid phpterminal package. Package needs to follow naming convention. See documentation.%w');
             \cli\line("");
