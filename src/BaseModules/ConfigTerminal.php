@@ -525,7 +525,6 @@ class ConfigTerminal extends Modules
         $module = strtolower($args[0]);
 
         if (isset($this->terminal->config['modules'][$module])) {
-            (new $this->terminal->config['plugins'][$module]['class'])->init($this->terminal)->onActive();
             $this->terminal->updateConfig(['active_module' => $module]);
             $this->terminal->setActiveModule($module);
             $this->terminal->getAllCommands();
