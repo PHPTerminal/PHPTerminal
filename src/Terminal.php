@@ -158,6 +158,8 @@ class Terminal extends Base
 
                     $this->whereAt = 'config';
                     $this->extractAllCommands(true, false, false);
+                } else {
+                    echo "do commands only work in config terminal mode!\n";
                 }
             } else if ($command === 'clear') {
                 system('clear');
