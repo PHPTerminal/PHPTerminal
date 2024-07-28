@@ -398,6 +398,9 @@ class Terminal extends Base
         if ($autoCompleteList) {
             $this->autoCompleteList = [];
         }
+        if ($execCommandsList) {
+            $this->execCommandsList = [];
+        }
 
         foreach ($this->modules as $moduleClass => $modulesArr) {
             foreach ($modulesArr as $module) {
