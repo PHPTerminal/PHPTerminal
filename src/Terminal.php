@@ -261,14 +261,14 @@ class Terminal extends Base
     {
         if ($this->module !== 'base') {
             if (isset($this->config['modules'][$this->module]['banner'])) {
-                $this->config['modules'][$this->module]['banner'] = str_replace('\\\\', '\\', $this->config['modules'][$this->module]['banner']);
+                $this->config['modules'][$this->module]['banner'] = str_replace('\\n', PHP_EOL, $this->config['modules'][$this->module]['banner']);
 
                 $this->banner = "%B" . $this->config['modules'][$this->module]['banner'] . "%w";
             } else {
-                $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['modules']['base']['banner']) . "%w";
+                $this->banner = "%B" . str_replace('\\n', PHP_EOL, $this->config['modules']['base']['banner']) . "%w";
             }
         } else {
-            $this->banner = "%B" . str_replace('\\\\', '\\', $this->config['modules']['base']['banner']) . "%w";
+            $this->banner = "%B" . str_replace('\\n', PHP_EOL, $this->config['modules']['base']['banner']) . "%w";
         }
     }
 
