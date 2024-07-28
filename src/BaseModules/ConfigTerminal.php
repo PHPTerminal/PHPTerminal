@@ -524,6 +524,12 @@ class ConfigTerminal extends Modules
 
         $module = strtolower($args[0]);
 
+        if (strtolower($this->terminal->config['active_module']) === $args[0]) {
+            $this->terminal->addResponse('Module ' . $module . ' is currently active!', 2);
+
+            return false;
+        }
+
         if (isset($this->terminal->config['modules'][$module])) {
             $this->terminal->updateConfig(['active_module' => $module]);
             $this->terminal->setActiveModule($module);
