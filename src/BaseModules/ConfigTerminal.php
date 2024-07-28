@@ -37,12 +37,14 @@ class ConfigTerminal extends Modules
                     "command"       => "set hostname",
                     "description"   => "Set hostname {hostname}",
                     "function"      => "set",
+                    "availableIn"   => "all"
                 ],
                 [
                     "availableAt"   => "config",
                     "command"       => "set banner",
                     "description"   => "Set banner. Enter new banner for the active module.",
                     "function"      => "set",
+                    "availableIn"   => "all"
                 ],
                 [
                     "availableAt"   => "config",
