@@ -301,27 +301,12 @@ abstract class Base
 
                     $outputArr[$inputField] = join($inputFieldArr);
 
-                    if (ord($input) == 9) {
-                        if (isset($inputFieldsDefaults[$inputField]) &&
-                            $outputArr[$inputField] !== '' &&
-                            str_starts_with($inputFieldsDefaults[$inputField], $outputArr[$inputField])
-                        ) {
-                            $strOutput = str_replace($outputArr[$inputField], '', $inputFieldsDefaults[$inputField]);
-
+                    if ($outputArr[$inputField] === '') {
+                        if (isset($inputFieldsCurrentValues[$inputField])) {
+                            $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                        } else if (isset($inputFieldsDefaults[$inputField])) {
                             $outputArr[$inputField] = $inputFieldsDefaults[$inputField];
-
-                            fwrite(STDOUT, $strOutput);
-                        } else {
-                            $initial = false;
-
-                            continue;
                         }
-                    }
-
-                    if ($outputArr[$inputField] === '' &&
-                        isset($inputFieldsCurrentValues[$inputField])
-                    ) {
-                        $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
                     }
 
                     if ($outputArr[$inputField] === '') {
@@ -329,7 +314,6 @@ abstract class Base
                             \cli\line('');
                             $inputFieldInputCounter++;
 
-                            $outputArr = [];
                             $inputFieldArr = [];
                             $initial = true;
 
@@ -360,7 +344,7 @@ abstract class Base
                         ) {
                             \cli\line('');
                             \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be null!%w');
-                            $outputArr = [];
+
                             $inputFieldArr = [];
                             $initial = true;
 
@@ -375,7 +359,6 @@ abstract class Base
                             \cli\line('');
                             \cli\line('%rError: ' . strtoupper($inputField) . ' should only contain one of the options. HINT: input is case sensitive.');
 
-                            $outputArr = [];
                             $inputFieldArr = [];
                             $initial = true;
 
