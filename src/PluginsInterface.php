@@ -4,13 +4,18 @@ namespace PHPTerminal;
 
 interface PluginsInterface
 {
-    public function init(Terminal $terminal) : object;
+    // return $this - Called when initializing the plugin
+    public function init(Terminal $terminal, string $command) : object;
 
-    public function onInstall() : object;//return $this
+    //return $this - Called at the time of plugin install
+    public function onInstall() : object;
 
-    public function onUpgrade() : object;//return $this
+    //return $this - Called at the time of plugin upgrade
+    public function onUpgrade() : object;
 
-    public function onUninstall() : object;//return $this
+    //return $this - Called at the time of plugin uninstall
+    public function onUninstall() : object;
 
+    //return array - Called at the time of plugin install to grab predefined settings and are then stored in the database.
     public function getSettings() : array;
 }
