@@ -27,6 +27,11 @@ class Modules implements ModulesInterface
         return $this;
     }
 
+    public function onActive() : object
+    {
+        return $this;
+    }
+
     public function getCommands() : array
     {
         return [];

@@ -172,12 +172,12 @@ abstract class Base
     }
 
     public function addResponse(
-        $responseMessage,
+        string $responseMessage,
         int $responseCode = 0,
-        $responseData = null,
-        $responseDataIsList = false,
-        $showColumns = [],
-        $columnsWidths = []
+        array $responseData = null,
+        bool $responseDataIsList = false,
+        array $showColumns = [],
+        array $columnsWidths = []
     ) {
         $this->commandsData->responseMessage = $responseMessage;
 
@@ -275,7 +275,11 @@ abstract class Base
                 if ($initial) {
                     $initialValue = '';
                     if (isset($inputFieldsCurrentValues[$inputField])) {
-                        $initialValue = '%c (' . $inputFieldsCurrentValues[$inputField] . ')%b';
+                        if ($isSecret) {
+                            $initialValue = '%c (***)%b';
+                        } else {
+                            $initialValue = '%c (' . $inputFieldsCurrentValues[$inputField] . ')%b';
+                        }
                     } else if (isset($inputFieldsDefaults[$inputField])) {
                         $initialValue = '%c (' . $inputFieldsDefaults[$inputField] . ')%b';
                     }
@@ -301,27 +305,16 @@ abstract class Base
 
                     $outputArr[$inputField] = join($inputFieldArr);
 
-                    if (ord($input) == 9) {
-                        if (isset($inputFieldsDefaults[$inputField]) &&
-                            $outputArr[$inputField] !== '' &&
-                            str_starts_with($inputFieldsDefaults[$inputField], $outputArr[$inputField])
-                        ) {
-                            $strOutput = str_replace($outputArr[$inputField], '', $inputFieldsDefaults[$inputField]);
-
+                    if ($outputArr[$inputField] === '') {
+                        if (isset($inputFieldsCurrentValues[$inputField])) {
+                            if ($isSecret) {
+                                $outputArr[$inputField] = '';
+                            } else {
+                                $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                            }
+                        } else if (isset($inputFieldsDefaults[$inputField])) {
                             $outputArr[$inputField] = $inputFieldsDefaults[$inputField];
-
-                            fwrite(STDOUT, $strOutput);
-                        } else {
-                            $initial = false;
-
-                            continue;
                         }
-                    }
-
-                    if ($outputArr[$inputField] === '' &&
-                        isset($inputFieldsCurrentValues[$inputField])
-                    ) {
-                        $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
                     }
 
                     if ($outputArr[$inputField] === '') {
@@ -329,7 +322,6 @@ abstract class Base
                             \cli\line('');
                             $inputFieldInputCounter++;
 
-                            $outputArr = [];
                             $inputFieldArr = [];
                             $initial = true;
 
@@ -360,7 +352,7 @@ abstract class Base
                         ) {
                             \cli\line('');
                             \cli\line('%rField : ' . $inputField  . ' is a required field and cannot be null!%w');
-                            $outputArr = [];
+
                             $inputFieldArr = [];
                             $initial = true;
 
@@ -375,7 +367,6 @@ abstract class Base
                             \cli\line('');
                             \cli\line('%rError: ' . strtoupper($inputField) . ' should only contain one of the options. HINT: input is case sensitive.');
 
-                            $outputArr = [];
                             $inputFieldArr = [];
                             $initial = true;
 
@@ -542,6 +533,7 @@ abstract class Base
     {
         return $this->config['command_ignore_chars'];
     }
+
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {
