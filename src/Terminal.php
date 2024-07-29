@@ -74,12 +74,6 @@ class Terminal extends Base
 
     public function run($terminated = false)
     {
-        if ($this->connectionReachedIdleTimeout()) {
-            $this->quit(true);
-        }
-
-        $this->resetLastAccessTime();
-
         $this->updateAutoComplete();
 
         $this->signal = SignalHandler::create();
@@ -91,6 +85,12 @@ class Terminal extends Base
         }
 
         while (true) {
+            if ($this->connectionReachedIdleTimeout()) {
+                $this->quit(true);
+            }
+
+            $this->resetLastAccessTime();
+
             if ($this->signal->isTriggered()) {
                \cli\line('');
             }
