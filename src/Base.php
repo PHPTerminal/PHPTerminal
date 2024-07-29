@@ -275,7 +275,11 @@ abstract class Base
                 if ($initial) {
                     $initialValue = '';
                     if (isset($inputFieldsCurrentValues[$inputField])) {
-                        $initialValue = '%c (' . $inputFieldsCurrentValues[$inputField] . ')%b';
+                        if ($isSecret) {
+                            $initialValue = '%c (***)%b';
+                        } else {
+                            $initialValue = '%c (' . $inputFieldsCurrentValues[$inputField] . ')%b';
+                        }
                     } else if (isset($inputFieldsDefaults[$inputField])) {
                         $initialValue = '%c (' . $inputFieldsDefaults[$inputField] . ')%b';
                     }
@@ -303,7 +307,11 @@ abstract class Base
 
                     if ($outputArr[$inputField] === '') {
                         if (isset($inputFieldsCurrentValues[$inputField])) {
-                            $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                            if ($isSecret) {
+                                $outputArr[$inputField] = '';
+                            } else {
+                                $outputArr[$inputField] = $inputFieldsCurrentValues[$inputField];
+                            }
                         } else if (isset($inputFieldsDefaults[$inputField])) {
                             $outputArr[$inputField] = $inputFieldsDefaults[$inputField];
                         }
