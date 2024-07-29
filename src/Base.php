@@ -172,12 +172,12 @@ abstract class Base
     }
 
     public function addResponse(
-        $responseMessage,
+        string $responseMessage,
         int $responseCode = 0,
-        $responseData = null,
-        $responseDataIsList = false,
-        $showColumns = [],
-        $columnsWidths = []
+        array $responseData = null,
+        bool $responseDataIsList = false,
+        array $showColumns = [],
+        array $columnsWidths = []
     ) {
         $this->commandsData->responseMessage = $responseMessage;
 
@@ -542,6 +542,7 @@ abstract class Base
     {
         return $this->config['command_ignore_chars'];
     }
+
     protected function checkTerminalPath()
     {
         if (!is_dir(base_path('terminaldata/'))) {

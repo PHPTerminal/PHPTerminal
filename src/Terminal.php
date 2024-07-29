@@ -934,7 +934,6 @@ class Terminal extends Base
                                 }
                             }
                         } else {
-
                             \cli\line('%b' . strtoupper($key) . ' : ' . '%w' . $value);
                         }
                     }
