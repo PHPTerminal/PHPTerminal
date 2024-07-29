@@ -533,6 +533,37 @@ class ConfigTerminal extends Modules
         }
 
         if (isset($this->terminal->config['modules'][$module])) {
+            if ($module !== 'base') {
+                if ($this->runComposerCommand('show -f json ' . $this->terminal->config['modules'][$module]['package_name'])) {
+                    $composerInfomation = file_get_contents(base_path('composer.install'));
+
+                    $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
+
+                    $composerInfomation = @json_decode($composerInfomation, true);
+
+                    try {
+                        $namespace = array_keys($composerInfomation['autoload']['psr-4'])[0];
+                        $class = $namespace . ucfirst($module);
+                        if (!class_exists($class)) {
+                            include $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_keys($composerInfomation['autoload']['psr-4'])[0]] . ucfirst($module) . '.php';
+                        }
+
+                        (new $class)->init($this->terminal, null)->onActive();
+                    } catch (\throwable $e) {
+                        \cli\line("");
+                        \cli\line('%yCould not run onActive method for module ' . $composerInfomation['name'] . ', contact developer!%w');
+                        \cli\line('%y' . $e->getMessage() . '%w');
+                        \cli\line("");
+
+                        return false;
+                    }
+                } else {
+                    $this->readComposerInstallFile(true);
+
+                    return false;
+                }
+            }
+
             $this->terminal->updateConfig(['active_module' => $module]);
             $this->terminal->setActiveModule($module);
             $this->terminal->getAllCommands();
