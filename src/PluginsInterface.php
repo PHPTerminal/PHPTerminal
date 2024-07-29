@@ -5,7 +5,7 @@ namespace PHPTerminal;
 interface PluginsInterface
 {
     // return $this - Called when initializing the plugin
-    public function init(Terminal $terminal, string $command) : object;
+    public function init(Terminal $terminal) : object;
 
     //return $this - Called at the time of plugin install
     public function onInstall() : object;
