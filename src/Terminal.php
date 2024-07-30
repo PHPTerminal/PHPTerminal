@@ -57,7 +57,6 @@ class Terminal extends Base
         try {
             $this->getAllCommands();
         } catch (\throwable | UnableToListContents $e) {
-            var_dump($e);
             \cli\line("%rError Loading commands, contact Developer!%w" . PHP_EOL . PHP_EOL);
 
             exit(1);
