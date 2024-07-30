@@ -772,7 +772,6 @@ class ConfigTerminal extends Modules
 
                                     (new $class)->init($this->terminal, null)->onUninstall();
                                 } catch (\throwable $e) {
-                                    var_dump($e);
                                     \cli\line("");
                                     \cli\line('%yCould not run onUninstall for module ' . $composerInfomation['name'] . ', contact developer!%w');
                                     \cli\line('%y' . $e->getMessage() . '%w');
