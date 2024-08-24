@@ -223,7 +223,7 @@ class ConfigTerminal extends Modules
             \cli\line("");
         }
 
-        if ($this->runComposerCommand('show -i -f json')) {
+        if ($this->runComposerCommand('show -n -i -f json')) {
             $allPackages = file_get_contents(base_path('composer.install'));
 
             $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
@@ -534,7 +534,7 @@ class ConfigTerminal extends Modules
 
         if (isset($this->terminal->config['modules'][$module])) {
             if ($module !== 'base') {
-                if ($this->runComposerCommand('show -f json ' . $this->terminal->config['modules'][$module]['package_name'])) {
+                if ($this->runComposerCommand('show -n -f json ' . $this->terminal->config['modules'][$module]['package_name'])) {
                     $composerInfomation = file_get_contents(base_path('composer.install'));
 
                     $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
@@ -754,7 +754,7 @@ class ConfigTerminal extends Modules
                             return false;
                         }
 
-                        if ($this->runComposerCommand('show -f json ' . $args[0])) {
+                        if ($this->runComposerCommand('show -n -f json ' . $args[0])) {
                             $composerInfomation = file_get_contents(base_path('composer.install'));
 
                             $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
@@ -827,7 +827,7 @@ class ConfigTerminal extends Modules
             $call = 'onUpgrade';
         }
 
-        if ($this->runComposerCommand('show -f json ' . $args[0])) {
+        if ($this->runComposerCommand('show -n -f json ' . $args[0])) {
             $composerInfomation = file_get_contents(base_path('composer.install'));
 
             $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
@@ -859,7 +859,7 @@ class ConfigTerminal extends Modules
                     $this->terminal->config['modules'][$moduleKey]['location'] = $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_key_first($composerInfomation['autoload']['psr-4'])];
                 }
 
-                if ($this->runComposerCommand('show -i -f json')) {
+                if ($this->runComposerCommand('show -n -i -f json')) {
                     $allPackages = file_get_contents(base_path('composer.install'));
 
                     $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));

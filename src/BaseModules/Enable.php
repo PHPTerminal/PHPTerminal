@@ -308,7 +308,7 @@ class Enable extends Modules
         \cli\line("%bSearching...%w");
         \cli\line("");
 
-        if ($this->runComposerCommand('search -f json phpterminal-' . $args[0])) {
+        if ($this->runComposerCommand('search -n -f json phpterminal-' . $args[0])) {
             $composerInfomation = file_get_contents(base_path('composer.install'));
 
             $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
@@ -392,7 +392,7 @@ class Enable extends Modules
 
         if (isset($this->terminal->config[strtolower($args[0])]) && count($this->terminal->config[strtolower($args[0])]) > 0) {
             foreach ($this->terminal->config[strtolower($args[0])] as $package) {
-                if ($this->runComposerCommand('show -a -l -f json ' . $package['package_name'])) {
+                if ($this->runComposerCommand('show -n -a -l -f json ' . $package['package_name'])) {
                     $composerInfomation = file_get_contents(base_path('composer.install'));
 
                     $composerInfomation = trim(preg_replace('/<warning>.*<\/warning>/', '', $composerInfomation));
