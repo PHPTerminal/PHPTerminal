@@ -119,6 +119,9 @@ class Modules implements ModulesInterface
                 if (str_contains($line, '<warning>')) {
                     \cli\line("%y$line%w");
                 } else {
+                    if ($error) {
+                        continue;
+                    }
                     if (!str_contains($line, '.php line')) {
                         echo $line;
                     }
