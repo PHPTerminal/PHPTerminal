@@ -223,7 +223,7 @@ class ConfigTerminal extends Modules
             \cli\line("");
         }
 
-        if ($this->runComposerCommand('show -n -i -f json')) {
+        if ($this->runComposerCommand('show -n -f json')) {
             $allPackages = file_get_contents(base_path('composer.install'));
 
             $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
@@ -859,7 +859,7 @@ class ConfigTerminal extends Modules
                     $this->terminal->config['modules'][$moduleKey]['location'] = $composerInfomation['path'] . '/' . $composerInfomation['autoload']['psr-4'][array_key_first($composerInfomation['autoload']['psr-4'])];
                 }
 
-                if ($this->runComposerCommand('show -n -i -f json')) {
+                if ($this->runComposerCommand('show -n -f json')) {
                     $allPackages = file_get_contents(base_path('composer.install'));
 
                     $allPackages = trim(preg_replace('/<warning>.*<\/warning>/', '', $allPackages));
