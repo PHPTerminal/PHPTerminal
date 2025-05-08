@@ -340,10 +340,11 @@ class Terminal extends Base
             $this->setLocalContent(false, $module['location']);
 
             $modulesFiles =
-            $this->localContent->listContents('.', true)
-            ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
-            ->map(fn (StorageAttributes $attributes) => $attributes->path())
-            ->toArray();
+                $this->localContent
+                    ->listContents('.')
+                    ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
+                    ->map(fn (StorageAttributes $attributes) => $attributes->path())
+                    ->toArray();
 
             if (count($modulesFiles) > 0) {
                 foreach ($modulesFiles as $moduleFile) {
