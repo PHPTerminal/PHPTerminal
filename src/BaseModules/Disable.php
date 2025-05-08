@@ -7,7 +7,7 @@ use PHPTerminal\Terminal;
 
 class Disable extends Modules
 {
-    protected $terminal;
+    public $terminal;
 
     protected $auth;
 
